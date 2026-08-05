@@ -5,14 +5,22 @@ import { LEVELS, type Level } from '@/lib/game/data'
 import { Battle } from '@/components/game/battle'
 import { LevelSelect } from '@/components/game/level-select'
 import { MainMenu } from '@/components/game/main-menu'
+import {
+  clearAuth,
+  getProgress,
+  getToken,
+  getUserName,
+  login as apiLogin,
+  saveProgress,
+  type Progress,
+} from '@/lib/api'
 
 type View = 'menu' | 'levels' | 'story' | 'about' | 'battle'
 
-const STORAGE_KEY = 'pvz-cancan-progress'
-const AUTH_KEY = 'pvz-cancan-auth'
-const PASSWORD = '002523'
+/** 本地兜底进度：后端不可用时使用，保证离线可玩 */
+const STORAGE_KEY = 'pvz-cancan-progress-fallback'
 
-function loadProgress(): { unlocked: number; cleared: number[] } {
+function loadLocalProgress(): Progress {
   if (typeof window === 'undefined') return { unlocked: 1, cleared: [] }
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -27,43 +35,72 @@ function loadProgress(): { unlocked: number; cleared: number[] } {
   }
 }
 
+function saveLocalProgress(p: Progress) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)) } catch { /* 忽略 */ }
+}
+
 export default function Page() {
   const [authed, setAuthed] = useState(false)
   const [pwInput, setPwInput] = useState('')
   const [pwError, setPwError] = useState(false)
+  const [pwLoading, setPwLoading] = useState(false)
   const [view, setView] = useState<View>('menu')
   const [level, setLevel] = useState<Level | null>(null)
   const [unlocked, setUnlocked] = useState(1)
   const [cleared, setCleared] = useState<number[]>([])
+  const [userName, setUserName] = useState<string>('')
 
-  // 启动时检查密码授权 + 加载进度
+  // 启动时：检查 token 是否仍有效，并从后端拉取进度
   useEffect(() => {
-    try {
-      if (localStorage.getItem(AUTH_KEY) === '1') setAuthed(true)
-    } catch { /* 忽略 */ }
-    const { unlocked: u, cleared: c } = loadProgress()
-    setUnlocked(u)
-    setCleared(c)
+    const token = getToken()
+    if (!token) return // 未登录
+    // 有 token：尝试从后端拉进度，失败则清登录态
+    getProgress()
+      .then((p) => {
+        setAuthed(true)
+        setUserName(getUserName() ?? '')
+        setUnlocked(Math.max(1, Math.min(LEVELS.length, p.unlocked ?? 1)))
+        setCleared(Array.isArray(p.cleared) ? p.cleared : [])
+      })
+      .catch(() => {
+        // token 失效或后端不可达：清除登录态，回登录页
+        clearAuth()
+      })
   }, [])
 
-  const handlePassword = () => {
-    if (pwInput === PASSWORD) {
+  // 登录：调用后端 /api/login
+  const handlePassword = async () => {
+    setPwLoading(true)
+    try {
+      const result = await apiLogin(pwInput)
       setAuthed(true)
-      try { localStorage.setItem(AUTH_KEY, '1') } catch { /* 忽略 */ }
-    } else {
+      setUserName(result.name)
+      // 登录后拉取云端进度
+      try {
+        const p = await getProgress()
+        setUnlocked(Math.max(1, Math.min(LEVELS.length, p.unlocked ?? 1)))
+        setCleared(Array.isArray(p.cleared) ? p.cleared : [])
+      } catch {
+        // 云端无进度时用本地兜底
+        const local = loadLocalProgress()
+        setUnlocked(local.unlocked)
+        setCleared(local.cleared)
+      }
+    } catch {
       setPwError(true)
       setTimeout(() => setPwError(false), 600)
+    } finally {
+      setPwLoading(false)
     }
   }
 
-  // 进度变化时保存
+  // 进度变化时：写本地兜底 + 异步写后端
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ unlocked, cleared }))
-    } catch {
-      /* 忽略 */
-    }
-  }, [unlocked, cleared])
+    if (!authed) return
+    const p: Progress = { unlocked, cleared }
+    saveLocalProgress(p)
+    saveProgress(p).catch(() => { /* 后端不可达时静默，本地已存 */ })
+  }, [authed, unlocked, cleared])
 
   const handleWin = useCallback((levelId: number) => {
     setCleared((c) => (c.includes(levelId) ? c : [...c, levelId]))
@@ -95,9 +132,10 @@ export default function Page() {
           {pwError && <p className="mt-2 text-sm text-red-500">密码不对哦～</p>}
           <button
             onClick={handlePassword}
-            className="mt-4 w-full rounded-full bg-primary px-6 py-3 font-bold text-primary-foreground transition-transform active:scale-95"
+            disabled={pwLoading}
+            className="mt-4 w-full rounded-full bg-primary px-6 py-3 font-bold text-primary-foreground transition-transform active:scale-95 disabled:opacity-60"
           >
-            进入
+            {pwLoading ? '进入中…' : '进入'}
           </button>
         </div>
       </div>
@@ -137,11 +175,24 @@ export default function Page() {
     return <AboutView onBack={() => setView('menu')} />
   }
 
+  const handleLogout = useCallback(() => {
+    clearAuth()
+    setAuthed(false)
+    setUserName('')
+    setPwInput('')
+    setView('menu')
+    // 重置进度到初始，下次登录会重新从后端拉取
+    setUnlocked(1)
+    setCleared([])
+  }, [])
+
   return (
     <MainMenu
       onPlay={() => setView('levels')}
       onStory={() => setView('story')}
       onAbout={() => setView('about')}
+      userName={userName}
+      onLogout={handleLogout}
     />
   )
 }

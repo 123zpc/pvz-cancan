@@ -1,15 +1,17 @@
 'use client'
 
-import { BookHeart, Gamepad2, Gift } from 'lucide-react'
+import { BookHeart, Gamepad2, Gift, LogOut } from 'lucide-react'
 import { PlantSprite, SunSprite, ZombieSprite } from './sprites'
 
 interface MainMenuProps {
   onPlay: () => void
   onStory: () => void
   onAbout: () => void
+  userName?: string
+  onLogout?: () => void
 }
 
-export function MainMenu({ onPlay, onStory, onAbout }: MainMenuProps) {
+export function MainMenu({ onPlay, onStory, onAbout, userName, onLogout }: MainMenuProps) {
   return (
     <main className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-center overflow-hidden px-4 py-8">
       {/* 飘心背景装饰 */}
@@ -77,6 +79,24 @@ export function MainMenu({ onPlay, onStory, onAbout }: MainMenuProps) {
       <p className="relative z-10 mt-8 text-xs text-muted-foreground/60">
         小朱制作 · 送给最灿烂的你
       </p>
+
+      {/* 右上角：用户名 + 退出登录 */}
+      {userName && (
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full bg-card/85 px-3 py-1.5 text-xs shadow-md backdrop-blur">
+          <span className="font-bold text-foreground">你好，{userName}</span>
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-bold text-secondary-foreground transition-transform active:scale-95"
+              title="退出登录"
+            >
+              <LogOut className="size-3" />
+              退出
+            </button>
+          )}
+        </div>
+      )}
     </main>
   )
 }
