@@ -171,6 +171,9 @@
 .anim-pop {
   animation: pop-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+.animate-pop {
+  animation: pop-in 0.7s ease-out forwards;
+}
 .anim-boom {
   animation: boom 0.5s ease-out forwards;
 }
@@ -216,4 +219,158 @@
 }
 .float-heart {
   animation: float-heart linear infinite;
+}
+
+/* ── 消消乐特效 ── */
+
+/* 单格消除粒子：从小到大向外飞溅 */
+@keyframes m3-particle {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(0.1);
+    opacity: 0;
+  }
+}
+.m3-particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: m3-particle 0.55s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* 单格爆破光圈 */
+@keyframes m3-pop-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.2);
+    opacity: 0;
+  }
+}
+.m3-pop-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  border: 3px solid currentColor;
+  pointer-events: none;
+  animation: m3-pop-ring 0.5s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* 连消爆发：屏幕中心大光晕 */
+@keyframes m3-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.4);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+}
+.m3-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 55%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 211, 63, 0.55), rgba(255, 211, 63, 0));
+  pointer-events: none;
+  animation: m3-burst 0.7s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* 大连消：屏幕短促震动 */
+@keyframes m3-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 1px); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+}
+.m3-shake {
+  animation: m3-shake 0.35s ease-in-out;
+}
+
+/* 大连消鼓励语：放大上浮 */
+@keyframes m3-egg {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  25% {
+    transform: translate(-50%, -65%) scale(1.1);
+    opacity: 1;
+  }
+  70% {
+    transform: translate(-50%, -75%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -110%) scale(0.9);
+    opacity: 0;
+  }
+}
+.m3-egg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  animation: m3-egg 1.4s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* 选中格脉冲 */
+@keyframes m3-sel-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 211, 63, 0.55); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 211, 63, 0); }
+}
+.m3-sel-pulse {
+  animation: m3-sel-pulse 1.2s ease-out infinite;
+}
+
+/* 飘字（已有 animate-pop，新增更紧凑的 +分数 飘字） */
+@keyframes m3-score-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0;
+  }
+  30% {
+    transform: translate(-50%, -90%) scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -180%) scale(1);
+    opacity: 0;
+  }
+}
+.m3-score-pop {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  animation: m3-score-pop 0.9s ease-out forwards;
+  will-change: transform, opacity;
 }

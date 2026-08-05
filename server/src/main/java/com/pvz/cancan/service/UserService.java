@@ -23,6 +23,9 @@ public class UserService {
   private static final String TOKEN_PREFIX = "token:";
   private static final long TOKEN_TTL_DAYS = 30L;
 
+  /** 管理员密码（即 userId），仅有此用户可访问管理后台 */
+  private static final String ADMIN_USER_ID = "020510";
+
   /** 内置用户表：password -> User */
   private static final List<User> BUILTIN_USERS = List.of(
       new User("002523", "灿灿"),
@@ -66,5 +69,19 @@ public class UserService {
 
   public User getByPassword(String password) {
     return userTable.get(password);
+  }
+
+  public User getByUserId(String userId) {
+    return userTable.get(userId);
+  }
+
+  /** 判断 userId 是否为管理员（020510）。 */
+  public boolean isAdmin(String userId) {
+    return ADMIN_USER_ID.equals(userId);
+  }
+
+  /** 返回所有内置用户（不暴露密码字段）。 */
+  public List<User> getAllUsers() {
+    return BUILTIN_USERS;
   }
 }

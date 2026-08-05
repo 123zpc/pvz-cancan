@@ -4,7 +4,8 @@ import { ArrowLeft, Lock, Moon, Sun as SunIcon, Trophy } from 'lucide-react'
 import { LEVELS, PLANTS, ZOMBIES, type Level } from '@/lib/game/data'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { PlantSprite, SunSprite, ZombieSprite } from './sprites'
+import { PlantSprite, ZombieSprite } from './sprites'
+import { LevelSelectHeader } from './level-select-header'
 
 interface LevelSelectProps {
   unlocked: number
@@ -24,32 +25,19 @@ export function LevelSelect({ unlocked, cleared, onStart, onBack }: LevelSelectP
         返回菜单
       </button>
 
-      <section className="relative overflow-hidden rounded-3xl border-4 border-primary/25 bg-lawn p-6 shadow-lg sm:p-10">
-        <div className="relative z-10 max-w-xl">
-          <span className="inline-flex items-center gap-1 rounded-full bg-card/85 px-3 py-1 text-xs font-bold text-primary">
-            <SunSprite className="size-4" /> 献给灿灿的小游戏
-          </span>
-          <h1 className="mt-3 font-display text-4xl leading-tight font-extrabold text-balance text-card drop-shadow-md sm:text-5xl">
-            选择关卡
-          </h1>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-card/95 sm:text-base">
-            从初遇到永远，用阳光和植物记录每一个温暖的瞬间。
-          </p>
-          <Button
-            size="lg"
-            className="mt-6 rounded-full font-display text-base font-bold shadow-md"
-            onClick={() => onStart(LEVELS[Math.min(unlocked, LEVELS.length) - 1] ?? LEVELS[0])}
-          >
-            开始第 {Math.min(unlocked, LEVELS.length)} 关
-          </Button>
-        </div>
-        <div className="pointer-events-none absolute -right-2 bottom-0 flex items-end gap-1 opacity-95 sm:gap-3">
-          <PlantSprite id="sunflower" className="w-14 anim-bob sm:w-28" />
-          <PlantSprite id="peashooter" className="w-14 anim-bob sm:w-28" />
-          <ZombieSprite id="cone" className="w-14 anim-shamble sm:w-28" />
-          <ZombieSprite id="bucket" className="hidden w-24 anim-shamble sm:block" />
-        </div>
-      </section>
+      <LevelSelectHeader
+        unlocked={unlocked}
+        total={LEVELS.length}
+        onStart={() => onStart(LEVELS[Math.min(unlocked, LEVELS.length) - 1] ?? LEVELS[0])}
+        decoration={
+          <>
+            <PlantSprite id="sunflower" className="w-14 anim-bob sm:w-28" />
+            <PlantSprite id="peashooter" className="w-14 anim-bob sm:w-28" />
+            <ZombieSprite id="cone" className="w-14 anim-shamble sm:w-28" />
+            <ZombieSprite id="bucket" className="hidden w-24 anim-shamble sm:block" />
+          </>
+        }
+      />
 
       <h2 className="mt-10 font-display text-2xl font-bold">回忆</h2>
       <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -11,7 +11,7 @@ import { SeedBank } from './seed-bank'
 interface BattleProps {
   level: Level
   onExit: () => void
-  onWin: (levelId: number) => void
+  onWin: (levelId: number, timeSec: number) => void
   onNext?: () => void
 }
 
@@ -27,6 +27,9 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
   const [landscape, setLandscape] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showIOSHint, setShowIOSHint] = useState(false)
+  /** 本局开始时间戳（毫秒），用于计算通关用时 */
+  const startedAtRef = useRef<number>(0)
+  const wonRef = useRef(false)
 
   /** iOS Safari 不支持 Fullscreen API，只能通过"添加到主屏幕"实现全屏 */
   const isIOS = useCallback(() => {
@@ -49,6 +52,8 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
     setSelected(null)
     setShovel(false)
     setPaused(false)
+    startedAtRef.current = Date.now()
+    wonRef.current = false
   }, [level, round])
 
   useEffect(() => {
@@ -77,7 +82,11 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
       if (!pausedRef.current) step(g, dt)
       force((f) => f + 1)
       if (g.status === 'playing') raf = requestAnimationFrame(loop)
-      else if (g.status === 'won') onWin(g.level.id)
+      else if (g.status === 'won' && !wonRef.current) {
+        wonRef.current = true
+        const timeSec = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000))
+        onWin(g.level.id, timeSec)
+      }
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)

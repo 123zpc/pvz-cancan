@@ -25,13 +25,14 @@ public class ProgressService {
   public Progress get(String userId) {
     Object val = redisTemplate.opsForValue().get(PROGRESS_PREFIX + userId);
     if (val instanceof Progress p) return p;
-    return new Progress(1, java.util.List.of());
+    return new Progress(1, java.util.List.of(), 1, java.util.List.of());
   }
 
   /** 保存用户进度。 */
   public void save(String userId, Progress progress) {
     redisTemplate.opsForValue().set(PROGRESS_PREFIX + userId, progress);
-    log.info("用户 {} 进度已保存：unlocked={}, cleared={}",
-        userId, progress.getUnlocked(), progress.getCleared());
+    log.info("用户 {} 进度已保存：主游戏 unlocked={}, cleared={}；消消乐 m3Unlocked={}, m3Cleared={}",
+        userId, progress.getUnlocked(), progress.getCleared(),
+        progress.getM3Unlocked(), progress.getM3Cleared());
   }
 }

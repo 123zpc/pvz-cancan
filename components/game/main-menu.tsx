@@ -1,17 +1,18 @@
 'use client'
 
-import { BookHeart, Gamepad2, Gift, LogOut } from 'lucide-react'
+import { BookHeart, Gamepad2, Gift, LogOut, ShieldCheck } from 'lucide-react'
 import { PlantSprite, SunSprite, ZombieSprite } from './sprites'
 
 interface MainMenuProps {
   onPlay: () => void
   onStory: () => void
   onAbout: () => void
+  onAdmin?: () => void
   userName?: string
   onLogout?: () => void
 }
 
-export function MainMenu({ onPlay, onStory, onAbout, userName, onLogout }: MainMenuProps) {
+export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout }: MainMenuProps) {
   return (
     <main className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-center overflow-hidden px-4 py-8">
       {/* 飘心背景装饰 */}
@@ -74,6 +75,11 @@ export function MainMenu({ onPlay, onStory, onAbout, userName, onLogout }: MainM
         <MenuButton onClick={onAbout} variant="secondary" icon={<Gift className="size-5" />}>
           关于这份礼物
         </MenuButton>
+        {onAdmin && (
+          <MenuButton onClick={onAdmin} variant="secondary" icon={<ShieldCheck className="size-5" />}>
+            管理后台
+          </MenuButton>
+        )}
       </nav>
 
       <p className="relative z-10 mt-8 text-xs text-muted-foreground/60">

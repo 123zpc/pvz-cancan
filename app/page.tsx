@@ -2,25 +2,39 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { LEVELS, type Level } from '@/lib/game/data'
+import { MATCH3_LEVELS, type Match3Level } from '@/lib/game/match3'
+import { AdminPanel } from '@/components/game/admin-panel'
 import { Battle } from '@/components/game/battle'
+import { GamesHub } from '@/components/game/games-hub'
 import { LevelSelect } from '@/components/game/level-select'
 import { MainMenu } from '@/components/game/main-menu'
+import { Match3 } from '@/components/game/match3'
+import { Match3Select } from '@/components/game/match3-select'
 import {
+  ADMIN_USER_ID,
   clearAuth,
   getProgress,
   getToken,
+  getUserId,
   getUserName,
   login as apiLogin,
   saveProgress,
   type Progress,
 } from '@/lib/api'
 
-type View = 'menu' | 'levels' | 'story' | 'about' | 'battle'
+type View = 'menu' | 'games' | 'levels' | 'story' | 'about' | 'battle' | 'match3-select' | 'match3' | 'admin'
 
-/** 本地兜底进度：后端不可用时使用，保证离线可玩 */
+/** 本地兜底进度：后端不可用时使用，保证离线可玩。包含主游戏 + 消消乐 */
 const STORAGE_KEY = 'pvz-cancan-progress-fallback'
 
-function loadLocalProgress(): Progress {
+interface FullProgress {
+  unlocked: number
+  cleared: number[]
+  m3Unlocked?: number
+  m3Cleared?: number[]
+}
+
+function loadLocalProgress(): FullProgress {
   if (typeof window === 'undefined') return { unlocked: 1, cleared: [] }
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -29,13 +43,15 @@ function loadLocalProgress(): Progress {
     return {
       unlocked: Math.max(1, Math.min(LEVELS.length, data.unlocked ?? 1)),
       cleared: Array.isArray(data.cleared) ? data.cleared : [],
+      m3Unlocked: Math.max(1, Math.min(MATCH3_LEVELS.length, data.m3Unlocked ?? 1)),
+      m3Cleared: Array.isArray(data.m3Cleared) ? data.m3Cleared : [],
     }
   } catch {
     return { unlocked: 1, cleared: [] }
   }
 }
 
-function saveLocalProgress(p: Progress) {
+function saveLocalProgress(p: FullProgress) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)) } catch { /* 忽略 */ }
 }
 
@@ -48,7 +64,19 @@ export default function Page() {
   const [level, setLevel] = useState<Level | null>(null)
   const [unlocked, setUnlocked] = useState(1)
   const [cleared, setCleared] = useState<number[]>([])
+  const [m3Unlocked, setM3Unlocked] = useState(1)
+  const [m3Cleared, setM3Cleared] = useState<number[]>([])
+  const [match3Level, setMatch3Level] = useState<Match3Level | null>(null)
   const [userName, setUserName] = useState<string>('')
+  const [userId, setUserId] = useState<string>('')
+  /** 累计游戏时长（秒），用于管理后台展示 */
+  const [totalPlayTimeSec, setTotalPlayTimeSec] = useState(0)
+  /** 主游戏每关最佳通关用时 */
+  const [levelBestTimes, setLevelBestTimes] = useState<Record<number, number>>({})
+  /** 消消乐每关最佳通关用时 */
+  const [m3LevelBestTimes, setM3LevelBestTimes] = useState<Record<number, number>>({})
+
+  const isAdmin = userId === ADMIN_USER_ID
 
   // 启动时：检查 token 是否仍有效，并从后端拉取进度
   useEffect(() => {
@@ -59,8 +87,14 @@ export default function Page() {
       .then((p) => {
         setAuthed(true)
         setUserName(getUserName() ?? '')
+        setUserId(getUserId() ?? '')
         setUnlocked(Math.max(1, Math.min(LEVELS.length, p.unlocked ?? 1)))
         setCleared(Array.isArray(p.cleared) ? p.cleared : [])
+        setM3Unlocked(Math.max(1, Math.min(MATCH3_LEVELS.length, p.m3Unlocked ?? 1)))
+        setM3Cleared(Array.isArray(p.m3Cleared) ? p.m3Cleared : [])
+        setTotalPlayTimeSec(p.totalPlayTimeSec ?? 0)
+        setLevelBestTimes(p.levelBestTimes ?? {})
+        setM3LevelBestTimes(p.m3LevelBestTimes ?? {})
       })
       .catch(() => {
         // token 失效或后端不可达：清除登录态，回登录页
@@ -75,16 +109,24 @@ export default function Page() {
       const result = await apiLogin(pwInput)
       setAuthed(true)
       setUserName(result.name)
+      setUserId(result.userId)
       // 登录后拉取云端进度
       try {
         const p = await getProgress()
         setUnlocked(Math.max(1, Math.min(LEVELS.length, p.unlocked ?? 1)))
         setCleared(Array.isArray(p.cleared) ? p.cleared : [])
+        setM3Unlocked(Math.max(1, Math.min(MATCH3_LEVELS.length, p.m3Unlocked ?? 1)))
+        setM3Cleared(Array.isArray(p.m3Cleared) ? p.m3Cleared : [])
+        setTotalPlayTimeSec(p.totalPlayTimeSec ?? 0)
+        setLevelBestTimes(p.levelBestTimes ?? {})
+        setM3LevelBestTimes(p.m3LevelBestTimes ?? {})
       } catch {
         // 云端无进度时用本地兜底
         const local = loadLocalProgress()
         setUnlocked(local.unlocked)
         setCleared(local.cleared)
+        setM3Unlocked(local.m3Unlocked ?? 1)
+        setM3Cleared(local.m3Cleared ?? [])
       }
     } catch {
       setPwError(true)
@@ -94,20 +136,66 @@ export default function Page() {
     }
   }
 
-  // 进度变化时：写本地兜底 + 异步写后端
+  // 进度变化时：写本地兜底 + 异步写后端（主游戏 + 消消乐 + 用时合并保存）
   useEffect(() => {
     if (!authed) return
-    const p: Progress = { unlocked, cleared }
+    const p: Progress = {
+      unlocked,
+      cleared,
+      m3Unlocked,
+      m3Cleared,
+      totalPlayTimeSec,
+      levelBestTimes,
+      m3LevelBestTimes,
+      lastPlayedAt: Date.now(),
+    }
     saveLocalProgress(p)
     saveProgress(p).catch(() => { /* 后端不可达时静默，本地已存 */ })
-  }, [authed, unlocked, cleared])
+  }, [authed, unlocked, cleared, m3Unlocked, m3Cleared, totalPlayTimeSec, levelBestTimes, m3LevelBestTimes])
 
-  const handleWin = useCallback((levelId: number) => {
+  const handleWin = useCallback((levelId: number, timeSec: number) => {
     setCleared((c) => (c.includes(levelId) ? c : [...c, levelId]))
     setUnlocked((u) => Math.max(u, Math.min(LEVELS.length, levelId + 1)))
+    setTotalPlayTimeSec((t) => t + timeSec)
+    setLevelBestTimes((m) => {
+      const prev = m[levelId]
+      if (prev === undefined || timeSec < prev) return { ...m, [levelId]: timeSec }
+      return m
+    })
+  }, [])
+
+  const handleMatch3Win = useCallback((levelId: number, timeSec: number) => {
+    setM3Cleared((c) => (c.includes(levelId) ? c : [...c, levelId]))
+    setM3Unlocked((u) => Math.max(u, Math.min(MATCH3_LEVELS.length, levelId + 1)))
+    setTotalPlayTimeSec((t) => t + timeSec)
+    setM3LevelBestTimes((m) => {
+      const prev = m[levelId]
+      if (prev === undefined || timeSec < prev) return { ...m, [levelId]: timeSec }
+      return m
+    })
   }, [])
 
   const nextLevel = level ? LEVELS.find((l) => l.id === level.id + 1) : undefined
+  const nextMatch3Level = match3Level ? MATCH3_LEVELS.find((l) => l.id === match3Level.id + 1) : undefined
+
+  const handleLogout = useCallback(() => {
+    clearAuth()
+    setAuthed(false)
+    setUserName('')
+    setUserId('')
+    setPwInput('')
+    setView('menu')
+    // 重置进度到初始，下次登录会重新从后端拉取
+    setUnlocked(1)
+    setCleared([])
+    setM3Unlocked(1)
+    setM3Cleared([])
+    setTotalPlayTimeSec(0)
+    setLevelBestTimes({})
+    setM3LevelBestTimes({})
+    setLevel(null)
+    setMatch3Level(null)
+  }, [])
 
   // 密码门
   if (!authed) {
@@ -142,6 +230,22 @@ export default function Page() {
     )
   }
 
+  if (view === 'games') {
+    return (
+      <GamesHub
+        onBack={() => setView('menu')}
+        onSelectPvZ={() => setView('levels')}
+        onSelectMatch3={() => setView('match3-select')}
+        pvzUnlocked={unlocked}
+        pvzCleared={cleared}
+        pvzTotal={LEVELS.length}
+        m3Unlocked={m3Unlocked}
+        m3Cleared={m3Cleared}
+        m3Total={MATCH3_LEVELS.length}
+      />
+    )
+  }
+
   if (view === 'battle' && level) {
     return (
       <Battle
@@ -151,6 +255,35 @@ export default function Page() {
         onNext={nextLevel ? () => { setLevel(nextLevel); setView('battle') } : undefined}
       />
     )
+  }
+
+  if (view === 'match3' && match3Level) {
+    return (
+      <Match3
+        level={match3Level}
+        onExit={() => setView('match3-select')}
+        onWin={handleMatch3Win}
+        onNext={nextMatch3Level ? () => { setMatch3Level(nextMatch3Level); setView('match3') } : undefined}
+      />
+    )
+  }
+
+  if (view === 'match3-select') {
+    return (
+      <Match3Select
+        unlocked={m3Unlocked}
+        cleared={m3Cleared}
+        onStart={(l) => {
+          setMatch3Level(l)
+          setView('match3')
+        }}
+        onBack={() => setView('menu')}
+      />
+    )
+  }
+
+  if (view === 'admin' && isAdmin) {
+    return <AdminPanel onBack={() => setView('menu')} />
   }
 
   if (view === 'levels') {
@@ -175,22 +308,12 @@ export default function Page() {
     return <AboutView onBack={() => setView('menu')} />
   }
 
-  const handleLogout = useCallback(() => {
-    clearAuth()
-    setAuthed(false)
-    setUserName('')
-    setPwInput('')
-    setView('menu')
-    // 重置进度到初始，下次登录会重新从后端拉取
-    setUnlocked(1)
-    setCleared([])
-  }, [])
-
   return (
     <MainMenu
-      onPlay={() => setView('levels')}
+      onPlay={() => setView('games')}
       onStory={() => setView('story')}
       onAbout={() => setView('about')}
+      onAdmin={isAdmin ? () => setView('admin') : undefined}
       userName={userName}
       onLogout={handleLogout}
     />
@@ -199,12 +322,18 @@ export default function Page() {
 
 const STORY_CN_NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
 
-/** 故事章节配色：与 data.ts 的 storyTheme 对应 */
+/** 故事章节配色：与 data.ts 的 storyTheme 对应，10 种可爱卡通配色 */
 const STORY_THEME_CLS: Record<string, { box: string; title: string; highlight: string }> = {
-  lawn: { box: 'bg-lawn/20', title: 'text-primary', highlight: 'text-primary' },
-  sky: { box: 'bg-sky-100/60', title: 'text-sky-700', highlight: 'text-sky-700' },
-  rose: { box: 'bg-rose-50', title: 'text-rose-500', highlight: 'text-rose-500' },
-  indigo: { box: 'bg-indigo-50', title: 'text-indigo-500', highlight: 'text-indigo-500' },
+  sunny: { box: 'bg-amber-50 border-2 border-amber-200', title: 'text-amber-600', highlight: 'text-amber-600' },
+  rose: { box: 'bg-rose-50 border-2 border-rose-200', title: 'text-rose-500', highlight: 'text-rose-500' },
+  ice: { box: 'bg-sky-50 border-2 border-sky-200', title: 'text-sky-600', highlight: 'text-sky-600' },
+  mint: { box: 'bg-emerald-50 border-2 border-emerald-200', title: 'text-emerald-600', highlight: 'text-emerald-600' },
+  cherry: { box: 'bg-red-50 border-2 border-red-200', title: 'text-red-500', highlight: 'text-red-500' },
+  dawn: { box: 'bg-orange-50 border-2 border-orange-200', title: 'text-orange-600', highlight: 'text-orange-600' },
+  rain: { box: 'bg-violet-50 border-2 border-violet-200', title: 'text-violet-600', highlight: 'text-violet-600' },
+  milk: { box: 'bg-yellow-50 border-2 border-yellow-200', title: 'text-yellow-700', highlight: 'text-yellow-700' },
+  star: { box: 'bg-indigo-50 border-2 border-indigo-200', title: 'text-indigo-500', highlight: 'text-indigo-500' },
+  gold: { box: 'bg-pink-50 border-2 border-pink-200', title: 'text-pink-600', highlight: 'text-pink-600' },
 }
 
 function StoryView({ onBack, onPlay }: { onBack: () => void; onPlay: () => void }) {
@@ -221,11 +350,11 @@ function StoryView({ onBack, onPlay }: { onBack: () => void; onPlay: () => void 
         <h1 className="font-display text-3xl font-extrabold text-primary sm:text-4xl">守护草坪的故事</h1>
         <p className="mt-1 text-sm text-muted-foreground">十个关卡，未完待续</p>
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-5">
           {LEVELS.map((lv) => {
-            const theme = STORY_THEME_CLS[lv.storyTheme] ?? STORY_THEME_CLS.lawn
+            const theme = STORY_THEME_CLS[lv.storyTheme] ?? STORY_THEME_CLS.sunny
             return (
-              <div key={lv.id} className={`rounded-2xl ${theme.box} p-4`}>
+              <div key={lv.id} className={`rounded-2xl ${theme.box} p-4 transition-transform hover:-translate-y-0.5`}>
                 <h3 className={`font-display text-lg font-bold ${theme.title}`}>
                   第{STORY_CN_NUM[lv.id - 1] ?? lv.id}章 · {lv.name}
                 </h3>

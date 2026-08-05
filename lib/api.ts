@@ -14,10 +14,20 @@ export const API_BASE =
     ? ''
     : process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8080'
 
-/** 进度数据结构 */
+/** 进度数据结构：主游戏 + 消消乐 + 用时统计 */
 export interface Progress {
   unlocked: number
   cleared: number[]
+  m3Unlocked?: number
+  m3Cleared?: number[]
+  /** 累计游戏时长（秒） */
+  totalPlayTimeSec?: number
+  /** 主游戏每关最佳通关用时（秒），key 为关卡 id */
+  levelBestTimes?: Record<number, number>
+  /** 消消乐每关最佳通关用时（秒） */
+  m3LevelBestTimes?: Record<number, number>
+  /** 最近一次保存进度的时间戳（epoch 毫秒） */
+  lastPlayedAt?: number
 }
 
 /** 登录响应 */
@@ -27,8 +37,25 @@ export interface LoginResult {
   name: string
 }
 
+/** 管理后台用户列表项 */
+export interface AdminUserSummary {
+  userId: string
+  name: string
+  unlocked: number
+  cleared: number[]
+  clearedCount: number
+  m3Unlocked: number
+  m3Cleared: number[]
+  m3ClearedCount: number
+  totalPlayTimeSec: number
+  levelBestTimes: Record<number, number>
+  m3LevelBestTimes: Record<number, number>
+  lastPlayedAt: number
+}
+
 const TOKEN_KEY = 'pvz-cancan-token'
 const NAME_KEY = 'pvz-cancan-name'
+const USERID_KEY = 'pvz-cancan-userid'
 
 /* ── token 本地缓存 ── */
 export function getToken(): string | null {
@@ -41,10 +68,23 @@ export function getUserName(): string | null {
   return localStorage.getItem(NAME_KEY)
 }
 
-function cacheAuth(token: string, name: string) {
+export function getUserId(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(USERID_KEY)
+}
+
+/** 管理员 userId（与后端 UserService.ADMIN_USER_ID 保持一致） */
+export const ADMIN_USER_ID = '020510'
+
+export function isAdmin(): boolean {
+  return getUserId() === ADMIN_USER_ID
+}
+
+function cacheAuth(token: string, name: string, userId: string) {
   try {
     localStorage.setItem(TOKEN_KEY, token)
     localStorage.setItem(NAME_KEY, name)
+    localStorage.setItem(USERID_KEY, userId)
   } catch { /* 忽略 */ }
 }
 
@@ -52,6 +92,7 @@ export function clearAuth() {
   try {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(NAME_KEY)
+    localStorage.removeItem(USERID_KEY)
   } catch { /* 忽略 */ }
 }
 
@@ -87,7 +128,7 @@ export async function login(password: string): Promise<LoginResult> {
     method: 'POST',
     body: JSON.stringify({ password }),
   })
-  cacheAuth(data.token, data.name)
+  cacheAuth(data.token, data.name, data.userId)
   return data
 }
 
@@ -99,6 +140,28 @@ export async function getProgress(): Promise<Progress> {
 /** 保存当前用户进度。 */
 export async function saveProgress(progress: Progress): Promise<void> {
   await request<{ success: boolean }>('/api/progress', {
+    method: 'POST',
+    body: JSON.stringify(progress),
+    auth: true,
+  })
+}
+
+/* ── 管理员接口 ── */
+
+/** 列出所有用户进度摘要。 */
+export async function adminListUsers(): Promise<AdminUserSummary[]> {
+  const data = await request<{ users: AdminUserSummary[] }>('/api/admin/users', { auth: true })
+  return data.users
+}
+
+/** 读取指定用户完整进度。 */
+export async function adminGetUser(userId: string): Promise<Progress> {
+  return request<Progress>(`/api/admin/users/${encodeURIComponent(userId)}`, { auth: true })
+}
+
+/** 覆盖指定用户进度。 */
+export async function adminOverwriteUser(userId: string, progress: Progress): Promise<void> {
+  await request<{ success: boolean }>(`/api/admin/users/${encodeURIComponent(userId)}`, {
     method: 'POST',
     body: JSON.stringify(progress),
     auth: true,
