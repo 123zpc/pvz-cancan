@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: can-can-server
+  data:
+    redis:
+      host: localhost
+      port: 6370
+      timeout: 2000ms
+
+# 内嵌 Redis 端口（避免与本地可能的 Redis 6379 冲突）
+app:
+  redis:
+    embedded-port: 6370
+  # 内置用户：密码即用户身份
+  users:
+    - password: "002523"
+      name: "灿灿"
+    - password: "020510"
+      name: "ZPC"
+
+logging:
+  level:
+    com.pvz.cancan: INFO
