@@ -197,6 +197,16 @@ export default function Page() {
   )
 }
 
+const STORY_CN_NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+
+/** 故事章节配色：与 data.ts 的 storyTheme 对应 */
+const STORY_THEME_CLS: Record<string, { box: string; title: string; highlight: string }> = {
+  lawn: { box: 'bg-lawn/20', title: 'text-primary', highlight: 'text-primary' },
+  sky: { box: 'bg-sky-100/60', title: 'text-sky-700', highlight: 'text-sky-700' },
+  rose: { box: 'bg-rose-50', title: 'text-rose-500', highlight: 'text-rose-500' },
+  indigo: { box: 'bg-indigo-50', title: 'text-indigo-500', highlight: 'text-indigo-500' },
+}
+
 function StoryView({ onBack, onPlay }: { onBack: () => void; onPlay: () => void }) {
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-12">
@@ -212,86 +222,22 @@ function StoryView({ onBack, onPlay }: { onBack: () => void; onPlay: () => void 
         <p className="mt-1 text-sm text-muted-foreground">十个关卡，未完待续</p>
 
         <div className="mt-6 space-y-6">
-          <div className="rounded-2xl bg-lawn/20 p-4">
-            <h3 className="font-display text-lg font-bold text-primary">第一章 · 初遇</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              那是一个阳光明媚的午后，你在人群中笑着，整个世界都亮了。
-              我笨拙地走上前，心跳得像草坪上第一朵向日葵刚绽放。
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-lawn/20 p-4">
-            <h3 className="font-display text-lg font-bold text-primary">第二章 · 约会</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              每一次约会，紧张得像面对一波路障僵尸。
-              但你来的时候，所有不安都化成了笑。那天我们走了很久很久。
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-sky-100/60 p-4">
-            <h3 className="font-display text-lg font-bold text-sky-700">第三章 · 暖冬</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              冬天很冷，但你的手很暖。
-              即使在最冷的夜晚，有你在，心里就一直是春天。
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-lawn/20 p-4">
-            <h3 className="font-display text-lg font-bold text-primary">第四章 · 磨合</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              不是每一天都完。
-              困难不可怕，一起面对就好。
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-rose-50 p-4">
-            <h3 className="font-display text-lg font-bold text-rose-500">第五章 · 守护</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              你知道，爱不只是一时心动。
-              不管未来有多少风雨，我都愿意做你身边最坚固的那道防线。
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-lawn/20 p-4">
-            <h3 className="font-display text-lg font-bold text-primary">第六章 · 早晨</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              日子一天天过去，最好的浪漫变成了清晨醒来。
-              一句早安，平凡得发光。
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-sky-100/60 p-4">
-            <h3 className="font-display text-lg font-bold text-sky-700">第七章 · 雨天</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              下雨天，也有不一样的风味。
-              外面风大雨大，但你的头靠在我肩上，整个世界就安安静静的。
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-lawn/20 p-4">
-            <h3 className="font-display text-lg font-bold text-primary">第八章 · 日常</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              一起逛超市、一起散步、一起游戏。
-              我发现最幸福的事不是轰轰烈烈，而是和你过的每一个普通日子。
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-indigo-50 p-4">
-            <h3 className="font-display text-lg font-bold text-indigo-500">第九章 · 星空</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              那晚我们坐在公园长椅上看星星。
-              我们有说有笑，你笑的时候所有星星都黯然失色。
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-rose-50 p-4">
-            <h3 className="font-display text-lg font-bold text-rose-500">第十章 · 守护</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              从初遇到永远，这条路我们一起走。
-              不管未来还有什么关卡，我都愿意陪你一关一关过下去。
-              <span className="mt-2 block font-bold text-rose-500">灿灿，这个游戏是送给你的礼物。愿你永远灿烂。</span>
-            </p>
-          </div>
+          {LEVELS.map((lv) => {
+            const theme = STORY_THEME_CLS[lv.storyTheme] ?? STORY_THEME_CLS.lawn
+            return (
+              <div key={lv.id} className={`rounded-2xl ${theme.box} p-4`}>
+                <h3 className={`font-display text-lg font-bold ${theme.title}`}>
+                  第{STORY_CN_NUM[lv.id - 1] ?? lv.id}章 · {lv.name}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {lv.story}
+                  {lv.storyHighlight && (
+                    <span className={`mt-2 block font-bold ${theme.highlight}`}>{lv.storyHighlight}</span>
+                  )}
+                </p>
+              </div>
+            )
+          })}
         </div>
 
         <button

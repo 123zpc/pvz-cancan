@@ -124,6 +124,12 @@ export interface Level {
   hint: string
   /** 通关后显示的寄语 */
   message: string
+  /** 「我们的故事」页面正文，与关卡卡片共用同一份文案 */
+  story: string
+  /** 故事页章节高亮句（可选，仅终章使用） */
+  storyHighlight?: string
+  /** 故事页章节配色主题 */
+  storyTheme: 'lawn' | 'sky' | 'rose' | 'indigo'
   night: boolean
   startSun: number
   /** 自然阳光间隔（秒），0 表示不掉落 */
@@ -145,6 +151,8 @@ export const LEVELS: Level[] = [
     subtitle: '白天 · 心动的那一刻',
     hint: '先种 3 朵向日葵攒阳光，就像先攒足勇气去认识她。',
     message: '那天的阳光格外温暖，就像灿灿的笑容一样。',
+    story: '那是一个阳光明媚的午后，你在人群中笑着，整个世界都亮了。我笨拙地走上前，心跳得像草坪上第一朵向日葵刚绽放。',
+    storyTheme: 'lawn',
     night: false,
     startSun: 75,
     sunInterval: 7,
@@ -164,6 +172,8 @@ export const LEVELS: Level[] = [
     subtitle: '白天 · 带上坚果出门',
     hint: '坚果墙放在射手前面一格，就像约会时给她满满的安全感。',
     message: '愿每一次约会，都像这片草坪一样充满阳光。',
+    story: '每一次约会，紧张得像面对一波路障僵尸。但你来的时候，所有不安都化成了笑。那天我们走了很久很久。',
+    storyTheme: 'lawn',
     night: false,
     startSun: 100,
     sunInterval: 7,
@@ -185,6 +195,8 @@ export const LEVELS: Level[] = [
     subtitle: '夜晚 · 阳光稀少但有你',
     hint: '夜里天上不掉阳光，全靠向日葵！就像再冷的冬天，有她在就温暖。',
     message: '冬夜再长，有灿灿在身边，心里就一直是春天。',
+    story: '冬天很冷，但你的手很暖。即使最冷的夜晚，有你在，心里就一直是春天。',
+    storyTheme: 'sky',
     night: true,
     startSun: 150,
     sunInterval: 0,
@@ -202,10 +214,12 @@ export const LEVELS: Level[] = [
   },
   {
     id: 4,
-    name: '磨合时光',
+    name: '磨合',
     subtitle: '白天 · 一起面对困难',
     hint: '双发射手叠火力，樱桃炸弹留给成堆的困难。两个人一起，什么都不怕。',
     message: '磨合的日子偶尔磕碰，但只要并肩作战，没有过不去的坎。',
+    story: '不是每一天都完。困难不可怕，一起面对就好。',
+    storyTheme: 'lawn',
     night: false,
     startSun: 175,
     sunInterval: 6.5,
@@ -227,6 +241,8 @@ export const LEVELS: Level[] = [
     subtitle: '夜晚 · 用一生去守护',
     hint: '壮汉僵尸血厚又快，前排坚果 + 后排双发是关键。守护她，守护这份爱。',
     message: '灿灿，不管未来有多少风雨，我都愿做你身边最坚固的防线。',
+    story: '你知道，爱不只是一时心动。不管未来有多少风雨，我都愿意做你身边最坚固的那道防线。',
+    storyTheme: 'rose',
     night: true,
     startSun: 250,
     sunInterval: 0,
@@ -250,6 +266,8 @@ export const LEVELS: Level[] = [
     subtitle: '白天 · 醒来有你在',
     hint: '双发射手+寒冰射手组合，让僵尸又慢又疼。就像每个早晨有灿灿在，一切都不慌不忙。',
     message: '清晨第一缕阳光照进来，灿灿还在身边，这就是最好的日常。',
+    story: '日子一天天过去，最好的浪漫变成了清晨醒来。一句早安，平凡得发光。',
+    storyTheme: 'lawn',
     night: false,
     startSun: 200,
     sunInterval: 6,
@@ -270,6 +288,8 @@ export const LEVELS: Level[] = [
     subtitle: '夜晚 · 风雨中有我',
     hint: '夜里没有自然阳光，多种向日葵！樱桃炸弹留给扎堆的铁桶。',
     message: '下雨天窝在一起看电影，外面的风雨与你们无关。',
+    story: '下雨天，也有不一样的风味。外面风大雨大，但你的头靠在我肩上，整个世界就安安静静的。',
+    storyTheme: 'sky',
     night: true,
     startSun: 200,
     sunInterval: 0,
@@ -290,6 +310,8 @@ export const LEVELS: Level[] = [
     subtitle: '白天 · 平凡也幸福',
     hint: '全部植物可用！合理安排阵型，前排坚果后排双发，寒冰辅助。',
     message: '一起逛超市、一起追剧，平淡的日子也挺有意思的。',
+    story: '一起逛超市、一起散步、一起游戏。我发现最幸福的事不是轰轰烈烈，而是和你过的每一个普通日子。',
+    storyTheme: 'lawn',
     night: false,
     startSun: 225,
     sunInterval: 6,
@@ -311,6 +333,8 @@ export const LEVELS: Level[] = [
     subtitle: '夜晚 · 一起数星星',
     hint: '壮汉+铁桶联手来袭！樱桃炸弹务必留给最密集的时刻。',
     message: '那天晚上星星很亮，你们坐在公园椅子上很久，什么都没说。',
+    story: '那晚我们坐在公园长椅上看星星。我们有说有笑，你笑的时候所有星星都黯然失色。',
+    storyTheme: 'indigo',
     night: true,
     startSun: 250,
     sunInterval: 0,
@@ -333,6 +357,9 @@ export const LEVELS: Level[] = [
     subtitle: '黄昏 · 一生的承诺',
     hint: '最终决战！所有僵尸倾巢出动，用你学到的一切守护这片草坪，守护灿灿。',
     message: '灿灿，接下来也请继续多多关照。',
+    story: '从初遇到永远，这条路我们一起走。不管未来还有什么关卡，我都愿意陪你一关一关过下去。',
+    storyHighlight: '灿灿，这个游戏是送给你的礼物。愿你永远灿烂。',
+    storyTheme: 'rose',
     night: false,
     startSun: 275,
     sunInterval: 5.5,
