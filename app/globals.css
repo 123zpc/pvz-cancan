@@ -1,0 +1,219 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@theme inline {
+  --font-sans: ui-sans-serif, system-ui, 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-display: ui-rounded, 'Baloo 2', system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  --color-lawn: var(--lawn);
+  --color-lawn-alt: var(--lawn-alt);
+  --color-soil: var(--soil);
+  --color-sun: var(--sun);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+:root {
+  color-scheme: light;
+
+  /* 3 中性色 + 草绿主色 + 阳光黄点缀 + 樱桃红警示 */
+  --background: oklch(0.965 0.028 105);
+  --foreground: oklch(0.31 0.055 145);
+  --card: oklch(0.995 0.008 100);
+  --card-foreground: oklch(0.31 0.055 145);
+  --popover: oklch(0.995 0.008 100);
+  --popover-foreground: oklch(0.31 0.055 145);
+  --primary: oklch(0.63 0.16 148);
+  --primary-foreground: oklch(0.99 0.01 100);
+  --secondary: oklch(0.93 0.035 120);
+  --secondary-foreground: oklch(0.34 0.06 145);
+  --muted: oklch(0.93 0.03 110);
+  --muted-foreground: oklch(0.5 0.04 140);
+  --accent: oklch(0.85 0.155 88);
+  --accent-foreground: oklch(0.33 0.08 70);
+  --destructive: oklch(0.6 0.2 25);
+  --border: oklch(0.87 0.035 120);
+  --input: oklch(0.87 0.035 120);
+  --ring: oklch(0.63 0.16 148);
+  --radius: 0.9rem;
+
+  --lawn: oklch(0.72 0.15 145);
+  --lawn-alt: oklch(0.66 0.15 147);
+  --soil: oklch(0.48 0.07 60);
+  --sun: oklch(0.87 0.16 88);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* 刘海屏/圆角屏安全区 */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  /* 移动端：去除点按灰色高亮闪烁，禁用人字号双击缩放延迟 */
+  button,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2.5deg) scale(1, 1);
+  }
+  35% {
+    transform: translateY(-8%) rotate(2.5deg) scale(0.96, 1.05);
+  }
+  70% {
+    transform: translateY(1%) rotate(1deg) scale(1.05, 0.95);
+  }
+}
+@keyframes shamble {
+  0%,
+  100% {
+    transform: rotate(-6deg) translateY(0) scale(1, 1);
+  }
+  25% {
+    transform: rotate(0deg) translateY(-5%) scale(0.95, 1.06);
+  }
+  50% {
+    transform: rotate(6deg) translateY(0) scale(1.04, 0.96);
+  }
+  75% {
+    transform: rotate(0deg) translateY(-5%) scale(0.95, 1.06);
+  }
+}
+@keyframes sun-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pop-in {
+  0% {
+    transform: scale(0.3, 0.5) translateY(20%);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.18, 0.86) translateY(0);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.92, 1.1);
+  }
+  100% {
+    transform: scale(1, 1);
+    opacity: 1;
+  }
+}
+@keyframes boom {
+  0% {
+    transform: scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+@keyframes float-up {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+}
+
+.anim-bob {
+  animation: bob 2.4s ease-in-out infinite;
+}
+.anim-shamble {
+  animation: shamble 0.9s ease-in-out infinite;
+}
+.anim-sun {
+  animation: sun-spin 9s linear infinite;
+}
+.anim-pop {
+  animation: pop-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.anim-boom {
+  animation: boom 0.5s ease-out forwards;
+}
+.anim-float {
+  animation: float-up 0.9s ease-out forwards;
+}
+@keyframes rotate-phone {
+  0%,
+  40% {
+    transform: rotate(0deg);
+  }
+  60%,
+  100% {
+    transform: rotate(90deg);
+  }
+}
+.anim-rotate-phone {
+  animation: rotate-phone 2.5s ease-in-out infinite;
+}
+/* 隐藏横向滚动条但保留滑动 */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes float-heart {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-110dvh) scale(1.1) rotate(15deg);
+    opacity: 0;
+  }
+}
+.float-heart {
+  animation: float-heart linear infinite;
+}

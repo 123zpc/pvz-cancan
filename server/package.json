@@ -1,0 +1,11 @@
+{
+  "name": "pvz-cancan-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "后端服务（前后端分离占位）",
+  "scripts": {
+    "dev": "node index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {}
+}
