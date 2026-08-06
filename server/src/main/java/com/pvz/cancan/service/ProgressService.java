@@ -20,6 +20,9 @@ import java.util.TreeMap;
 public class ProgressService {
 
   private static final String PROGRESS_PREFIX = "progress:";
+  /** 第 11 关上线前，客户端会将消消乐解锁进度封顶为第 10 关。 */
+  private static final int LAST_LEGACY_MATCH3_LEVEL = 10;
+  private static final int ENDLESS_MATCH3_LEVEL = 11;
 
   private final RedisTemplate<String, Object> redisTemplate;
 
@@ -30,7 +33,9 @@ public class ProgressService {
   /** 读取用户进度，无记录则返回默认初始进度（解锁第 1 关，无通关记录）。 */
   public Progress get(String userId) {
     Object val = redisTemplate.opsForValue().get(PROGRESS_PREFIX + userId);
-    if (val instanceof Progress p) return p;
+    if (val instanceof Progress p) {
+      return migrateMatch3EndlessUnlock(userId, normalize(p));
+    }
     return new Progress(1, java.util.List.of(), 1, java.util.List.of());
   }
 
@@ -93,6 +98,17 @@ public class ProgressService {
     if (normalized.getM3LevelBestTimes() == null) normalized.setM3LevelBestTimes(Map.of());
     if (normalized.getLastPlayedAt() == null) normalized.setLastPlayedAt(System.currentTimeMillis());
     return normalized;
+  }
+
+  /** 已通关旧版最终关（第 10 关）的用户，首次读取时自动解锁无尽花园。 */
+  private Progress migrateMatch3EndlessUnlock(String userId, Progress progress) {
+    boolean clearedLegacyFinalLevel = progress.getM3Cleared().contains(LAST_LEGACY_MATCH3_LEVEL);
+    if (clearedLegacyFinalLevel && progress.getM3Unlocked() < ENDLESS_MATCH3_LEVEL) {
+      progress.setM3Unlocked(ENDLESS_MATCH3_LEVEL);
+      redisTemplate.opsForValue().set(PROGRESS_PREFIX + userId, progress);
+      log.info("用户 {} 已通关消消乐第 10 关，已自动解锁无尽花园（第 11 关）", userId);
+    }
+    return progress;
   }
 
   private List<Integer> mergeCleared(List<Integer> existing, List<Integer> incoming) {

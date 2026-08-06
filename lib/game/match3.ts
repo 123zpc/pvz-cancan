@@ -42,6 +42,7 @@ export interface Match3Level {
   message: string
   /** 配色主题（与主游戏 storyTheme 一同风格） */
   theme: string
+  endless?: boolean
 }
 
 /**
@@ -60,6 +61,7 @@ export const MATCH3_LEVELS: Match3Level[] = [
   { id: 8,  name: '日常', subtitle: '平凡也幸福',   rows: 9, cols: 9, tileCount: 6, target: 11500, moves: 22, message: '和你过的每一天都很甜。', theme: 'milk' },
   { id: 9,  name: '星空', subtitle: '一起数星星',   rows: 9, cols: 9, tileCount: 6, target: 13500, moves: 22, message: '星星再亮，也不如你亮。', theme: 'star' },
   { id: 10, name: '永远', subtitle: '一生的承诺',   rows: 9, cols: 9, tileCount: 6, target: 16000, moves: 24, message: '灿灿，往后余生，多多关照。', theme: 'gold' },
+  { id: 11, name: '无尽花园', subtitle: '挑战没有终点', rows: 8, cols: 8, tileCount: 6, target: 0, moves: 0, message: '每一次连消，都是新的纪录。', theme: 'star', endless: true },
 ]
 
 /** 网格单元 */
@@ -287,4 +289,60 @@ export function hasPossibleMove(grid: Cell[][], tileCount: number): boolean {
     }
   }
   return false
+}
+
+export interface PowerupResolveResult {
+  grid: Cell[][]
+  totalCleared: number
+  clearedCells: { r: number; c: number; type: TileType }[]
+  chains: number
+  bestRunLength: number
+}
+
+/** Clear the selected tiles, refill the board, and resolve any resulting chain. */
+export function resolvePowerup(
+  grid: Cell[][],
+  tileCount: number,
+  targetCells: [number, number][],
+): PowerupResolveResult {
+  const rows = grid.length
+  const cols = grid[0]?.length ?? 0
+  const next = grid.map((row) => row.slice())
+  const clearedCells: { r: number; c: number; type: TileType }[] = []
+  const seen = new Set<string>()
+
+  for (const [r, c] of targetCells) {
+    const key = `${r},${c}`
+    const cell = r >= 0 && r < rows && c >= 0 && c < cols ? next[r][c] : null
+    if (!cell || seen.has(key)) continue
+    seen.add(key)
+    clearedCells.push({ r, c, type: cell.type })
+    next[r][c] = null
+  }
+
+  const pool = ALL_TILES.slice(0, tileCount)
+  for (let c = 0; c < cols; c++) {
+    let writeRow = rows - 1
+    for (let r = rows - 1; r >= 0; r--) {
+      if (!next[r][c]) continue
+      if (writeRow !== r) {
+        next[writeRow][c] = next[r][c]
+        next[r][c] = null
+      }
+      writeRow--
+    }
+    for (let r = writeRow; r >= 0; r--) {
+      next[r][c] = { type: pool[Math.floor(Math.random() * pool.length)] }
+    }
+  }
+
+  const chain = resolveChain(next, tileCount)
+  const chainCells = chain.steps.flatMap((step) => step.clearedCells)
+  return {
+    grid: chain.grid,
+    totalCleared: clearedCells.length + chain.totalCleared,
+    clearedCells: [...clearedCells, ...chainCells],
+    chains: chain.chains,
+    bestRunLength: Math.max(3, chain.bestRunLength),
+  }
 }

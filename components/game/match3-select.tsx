@@ -52,6 +52,7 @@ export function Match3Select({ unlocked, cleared, onStart, onBack }: Match3Selec
                 className={cn(
                   'h-full w-full rounded-3xl border-2 bg-card p-4 text-left transition-transform',
                   locked ? 'cursor-not-allowed opacity-60' : 'hover:-translate-y-1 hover:border-primary',
+                  level.endless && !locked && 'border-violet-300 bg-gradient-to-br from-violet-50 via-card to-rose-50',
                   done ? 'border-primary/60' : 'border-border',
                 )}
               >
@@ -83,7 +84,9 @@ export function Match3Select({ unlocked, cleared, onStart, onBack }: Match3Selec
                 </div>
 
                 <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                  目标 {level.target} 分 · {level.moves} 步 · {level.rows}×{level.cols}
+                  {level.endless
+                    ? '无限挑战 · 实时排行榜 · 特殊道具'
+                    : `目标 ${level.target} 分 · ${level.moves} 步 · ${level.rows}×${level.cols}`}
                 </p>
               </button>
             </li>

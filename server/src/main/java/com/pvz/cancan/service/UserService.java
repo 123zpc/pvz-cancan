@@ -2,6 +2,7 @@ package com.pvz.cancan.service;
 
 import com.pvz.cancan.model.User;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Service
+@DependsOn("backupRestoreService")
 public class UserService {
 
   private static final String TOKEN_PREFIX = "token:";

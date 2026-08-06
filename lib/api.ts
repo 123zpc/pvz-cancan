@@ -37,6 +37,20 @@ export interface LoginResult {
   name: string
 }
 
+export interface EndlessLeaderboardEntry {
+  userId: string
+  name: string
+  score: number
+  rank: number
+}
+
+export interface EndlessLeaderboard {
+  entries: EndlessLeaderboardEntry[]
+  myScore: number
+  myRank: number
+  scoreToBeat: number
+}
+
 /** 管理后台用户列表项 */
 export interface AdminUserSummary {
   userId: string
@@ -144,6 +158,18 @@ export async function saveProgress(progress: Progress): Promise<void> {
   await request<{ success: boolean }>('/api/progress', {
     method: 'POST',
     body: JSON.stringify(progress),
+    auth: true,
+  })
+}
+
+export async function getEndlessLeaderboard(): Promise<EndlessLeaderboard> {
+  return request<EndlessLeaderboard>('/api/match3/endless/leaderboard', { auth: true })
+}
+
+export async function submitEndlessScore(score: number): Promise<EndlessLeaderboard> {
+  return request<EndlessLeaderboard>('/api/match3/endless/score', {
+    method: 'POST',
+    body: JSON.stringify({ score }),
     auth: true,
   })
 }

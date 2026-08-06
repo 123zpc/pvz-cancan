@@ -96,4 +96,16 @@ class ProgressServiceTest {
     assertThat(saved.getCleared()).containsExactly(1, 2, 3);
     assertThat(saved.getUnlocked()).isEqualTo(4);
   }
+
+  @Test
+  void getUnlocksEndlessLevelForLegacyPlayerWhoClearedLevelTen() {
+    Progress legacy = new Progress(5, List.of(1, 2, 3, 4, 5), 10,
+        List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
+    when(valueOperations.get("progress:" + USER_ID)).thenReturn(legacy);
+
+    Progress progress = progressService.get(USER_ID);
+
+    assertThat(progress.getM3Unlocked()).isEqualTo(11);
+    verify(valueOperations).set("progress:" + USER_ID, legacy);
+  }
 }

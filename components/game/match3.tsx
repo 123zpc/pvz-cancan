@@ -9,12 +9,18 @@ import {
   hasPossibleMove,
   isAdjacent,
   resolveChain,
+  resolvePowerup,
   swap,
   type Cell,
   type Match3Level,
   type TileType,
   TILE_TYPES,
 } from '@/lib/game/match3'
+import {
+  getEndlessLeaderboard,
+  submitEndlessScore,
+  type EndlessLeaderboard,
+} from '@/lib/api'
 import { PlantSprite, ZombieSprite } from './sprites'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -27,6 +33,7 @@ interface Match3Props {
 }
 
 type Status = 'playing' | 'won' | 'lost'
+type Powerup = 'bomb' | 'beam' | null
 
 /* ── 特效数据结构 ── */
 interface CellFx {
@@ -87,10 +94,11 @@ function makeParticles(seed: number): { dx: number; dy: number }[] {
 }
 
 export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
+  const isEndless = level.endless === true
   const [grid, setGrid] = useState<Cell[][]>(() => createGrid(level.rows, level.cols, level.tileCount))
   const [selected, setSelected] = useState<[number, number] | null>(null)
   const [score, setScore] = useState(0)
-  const [moves, setMoves] = useState(level.moves)
+  const [moves, setMoves] = useState(isEndless ? Number.POSITIVE_INFINITY : level.moves)
   const [status, setStatus] = useState<Status>('playing')
   const [busy, setBusy] = useState(false)
   const [cellFx, setCellFx] = useState<CellFx[]>([])
@@ -101,9 +109,14 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
   const [shakeKey, setShakeKey] = useState(0)
   /** 被拒绝交换的格子（用于摇头反馈） */
   const [rejectCell, setRejectCell] = useState<[number, number] | null>(null)
+  const [powerups, setPowerups] = useState({ bomb: 1, beam: 1, shuffle: 1 })
+  const [activePower, setActivePower] = useState<Powerup>(null)
+  const [leaderboard, setLeaderboard] = useState<EndlessLeaderboard | null>(null)
+  const [rankFlash, setRankFlash] = useState<string | null>(null)
   /** 本局开始时间戳（毫秒），用于计算通关用时 */
   const startedAtRef = useRef<number>(0)
   const wonRef = useRef(false)
+  const lastRankRef = useRef(0)
 
   /* ── 特效入队工具（先定义，便于 effect 使用） ── */
   const pushEgg = useCallback((text: string, color: string, delay: number) => {
@@ -122,12 +135,34 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
     setShakeKey((k) => k + 1)
   }, [])
 
+  const applyLeaderboard = useCallback((next: EndlessLeaderboard) => {
+    const previousRank = lastRankRef.current
+    setLeaderboard(next)
+    if (next.myRank > 0) {
+      lastRankRef.current = next.myRank
+      if (previousRank > next.myRank) {
+        const text = `超越 ${previousRank - next.myRank} 位对手！`
+        setRankFlash(text)
+        pushEgg(text, '#ec4899', 0)
+        setTimeout(() => setRankFlash(null), 1200)
+      }
+    }
+  }, [pushEgg])
+
+  const refreshLeaderboard = useCallback(async () => {
+    try {
+      applyLeaderboard(await getEndlessLeaderboard())
+    } catch {
+      // Offline play remains available; the next poll will retry.
+    }
+  }, [applyLeaderboard])
+
   // 重置关卡
   const reset = useCallback(() => {
     setGrid(createGrid(level.rows, level.cols, level.tileCount))
     setSelected(null)
     setScore(0)
-    setMoves(level.moves)
+    setMoves(isEndless ? Number.POSITIVE_INFINITY : level.moves)
     setStatus('playing')
     setBusy(false)
     setCellFx([])
@@ -137,27 +172,45 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
     setCombo(0)
     setShakeKey(0)
     setRejectCell(null)
+    setPowerups({ bomb: 1, beam: 1, shuffle: 1 })
+    setActivePower(null)
+    setRankFlash(null)
     startedAtRef.current = Date.now()
     wonRef.current = false
-  }, [level])
+  }, [level, isEndless])
 
   useEffect(() => {
     reset()
   }, [reset])
 
+  useEffect(() => {
+    if (!isEndless) return
+    void refreshLeaderboard()
+    const timer = window.setInterval(() => void refreshLeaderboard(), 5000)
+    return () => window.clearInterval(timer)
+  }, [isEndless, refreshLeaderboard])
+
+  useEffect(() => {
+    if (!isEndless || score <= 0) return
+    const timer = window.setTimeout(() => {
+      submitEndlessScore(score).then(applyLeaderboard).catch(() => { /* retry on the next score or poll */ })
+    }, 450)
+    return () => window.clearTimeout(timer)
+  }, [score, isEndless, applyLeaderboard])
+
   // 胜利检测
   useEffect(() => {
-    if (status === 'playing' && score >= level.target) {
+    if (!isEndless && status === 'playing' && score >= level.target) {
       setStatus('won')
       if (!wonRef.current) {
         wonRef.current = true
         const timeSec = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000))
         onWin(level.id, timeSec)
       }
-    } else if (status === 'playing' && moves <= 0 && score < level.target) {
+    } else if (!isEndless && status === 'playing' && moves <= 0 && score < level.target) {
       setStatus('lost')
     }
-  }, [score, moves, status, level, onWin])
+  }, [score, moves, status, level, onWin, isEndless])
 
   // 死局检测：无可行交换时自动洗牌
   useEffect(() => {
@@ -168,9 +221,66 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
     }
   }, [grid, status, busy, level, pushEgg])
 
+  const choosePowerup = useCallback((powerup: Exclude<Powerup, null>) => {
+    if (busy || powerups[powerup] <= 0) return
+    setSelected(null)
+    setActivePower((active) => active === powerup ? null : powerup)
+  }, [busy, powerups])
+
+  const useShuffle = useCallback(() => {
+    if (busy || powerups.shuffle <= 0) return
+    setPowerups((items) => ({ ...items, shuffle: items.shuffle - 1 }))
+    setGrid(createGrid(level.rows, level.cols, level.tileCount))
+    setSelected(null)
+    setActivePower(null)
+    pushEgg('阳光洗牌！', '#f59e0b', 0)
+  }, [busy, powerups.shuffle, level, pushEgg])
+
+  const handlePowerTarget = useCallback((r: number, c: number) => {
+    if (!activePower || busy || status !== 'playing') return
+    setBusy(true)
+    const targets: [number, number][] = []
+    if (activePower === 'bomb') {
+      for (let rr = r - 1; rr <= r + 1; rr++) {
+        for (let cc = c - 1; cc <= c + 1; cc++) targets.push([rr, cc])
+      }
+    } else {
+      for (let cc = 0; cc < level.cols; cc++) targets.push([r, cc])
+      for (let rr = 0; rr < level.rows; rr++) targets.push([rr, c])
+    }
+
+    const result = resolvePowerup(grid, level.tileCount, targets)
+    const stage = isEndless ? Math.floor(score / 5000) + 1 : 1
+    const gained = Math.round(calcScore(result.totalCleared, Math.max(1, result.chains), result.bestRunLength) * (1 + (stage - 1) * 0.12))
+    const fx = result.clearedCells.map((cell) => ({
+      id: ++FX_ID,
+      r: cell.r,
+      c: cell.c,
+      color: TILE_TYPES[cell.type].color,
+      delay: 0,
+    }))
+    const fxIds = new Set(fx.map((item) => item.id))
+
+    setPowerups((items) => ({ ...items, [activePower]: Math.max(0, items[activePower] - 1) }))
+    setActivePower(null)
+    setGrid(result.grid)
+    setScore((value) => value + gained)
+    setCellFx((items) => [...items, ...fx])
+    setScorePops((items) => [...items, { id: ++FX_ID, text: `+${gained}`, r, c, delay: 0 }])
+    setTimeout(() => setCellFx((items) => items.filter((item) => !fxIds.has(item.id))), 700)
+    pushBurst(0)
+    pushShake()
+    pushEgg(activePower === 'bomb' ? '樱桃炸弹！' : '豌豆射线！', activePower === 'bomb' ? '#f43f5e' : '#22c55e', 0)
+    setTimeout(() => setBusy(false), 80)
+  }, [activePower, busy, status, level, grid, score, isEndless, pushBurst, pushEgg, pushShake])
+
   const handleCellClick = useCallback(
     (r: number, c: number) => {
       if (busy || status !== 'playing') return
+      if (activePower) {
+        handlePowerTarget(r, c)
+        return
+      }
       if (!selected) {
         setSelected([r, c])
         return
@@ -195,11 +305,12 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
       }
       setBusy(true)
       setSelected(null)
-      setMoves((m) => m - 1)
+      if (!isEndless) setMoves((m) => m - 1)
 
       // 链式消除
       const { grid: finalGrid, totalCleared, chains, steps, bestRunLength } = resolveChain(swapped, level.tileCount)
-      const gained = calcScore(totalCleared, chains, bestRunLength)
+      const stage = isEndless ? Math.floor(score / 5000) + 1 : 1
+      const gained = Math.round(calcScore(totalCleared, chains, bestRunLength) * (1 + (stage - 1) * 0.12))
 
       // 计算中心格（用于分数飘字定位）
       const firstStep = steps[0]
@@ -267,16 +378,32 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
       }
 
       // 更新分数与网格
+      if (isEndless && (bestRunLength >= 5 || chains >= 3)) {
+        const earnedPower = bestRunLength >= 5 ? 'bomb' : 'beam'
+        setPowerups((items) => ({ ...items, [earnedPower]: Math.min(3, items[earnedPower] + 1) }))
+        pushEgg(earnedPower === 'bomb' ? '获得樱桃炸弹！' : '获得豌豆射线！', earnedPower === 'bomb' ? '#f43f5e' : '#22c55e', maxDelay)
+      }
+
       setGrid(finalGrid)
       setScore((s) => s + gained)
 
       // busy 只需等 React 渲染新网格即可（约一帧），特效有自己的清理定时器
       setTimeout(() => setBusy(false), 50)
     },
-    [busy, status, selected, grid, level, pushBurst, pushEgg, pushShake],
+    [busy, status, selected, grid, level, isEndless, score, activePower, handlePowerTarget, pushBurst, pushEgg, pushShake],
   )
 
-  const progress = Math.min(100, (score / level.target) * 100)
+  const endlessStage = Math.floor(score / 5000) + 1
+  const progress = isEndless
+    ? Math.min(100, ((score % 5000) / 5000) * 100)
+    : Math.min(100, (score / level.target) * 100)
+  const distanceHint = !isEndless
+    ? ''
+    : !leaderboard?.myRank
+      ? '成为第一位挑战者，创造新纪录！'
+      : leaderboard.myRank === 1
+        ? '你正在领跑，保持连击！'
+        : `再得 ${Math.max(1, leaderboard.scoreToBeat - leaderboard.myScore + 1)} 分超越上一名`
   const tileTypes = useMemo(() => {
     const arr: TileType[] = ['sunflower', 'peashooter', 'wallnut', 'cherry', 'normal', 'cone']
     return arr.slice(0, level.tileCount)
@@ -293,7 +420,7 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
     : level.message
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 p-3 sm:p-5">
+    <div className="mx-auto flex min-h-[100dvh] w-full max-w-[430px] flex-col gap-2 px-3 py-2 sm:max-w-3xl sm:gap-3 sm:p-5">
       {/* 顶部状态条 */}
       <header className="flex flex-wrap items-center gap-2">
         <Button variant="secondary" size="sm" onClick={onExit} className="rounded-full">
@@ -320,22 +447,72 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
       {/* 数据面板 */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-2xl bg-card p-3 text-center shadow-sm">
-          <p className="text-xs font-bold text-muted-foreground">分数</p>
-          <p className={cn('font-display text-xl font-extrabold tabular-nums', score >= level.target ? 'text-primary' : 'text-foreground')}>
+          <p className="text-xs font-bold text-muted-foreground">{isEndless ? '本局分数' : '分数'}</p>
+          <p className={cn('font-display text-xl font-extrabold tabular-nums', isEndless || score >= level.target ? 'text-primary' : 'text-foreground')}>
             {score}
           </p>
         </div>
         <div className="rounded-2xl bg-card p-3 text-center shadow-sm">
-          <p className="text-xs font-bold text-muted-foreground">目标</p>
-          <p className="font-display text-xl font-extrabold tabular-nums text-muted-foreground">{level.target}</p>
+          <p className="text-xs font-bold text-muted-foreground">{isEndless ? '花园段位' : '目标'}</p>
+          <p className="font-display text-xl font-extrabold tabular-nums text-muted-foreground">{isEndless ? `Lv.${endlessStage}` : level.target}</p>
         </div>
         <div className="rounded-2xl bg-card p-3 text-center shadow-sm">
-          <p className="text-xs font-bold text-muted-foreground">剩余步数</p>
-          <p className={cn('font-display text-xl font-extrabold tabular-nums', moves <= 3 ? 'text-destructive' : 'text-foreground')}>
-            {moves}
+          <p className="text-xs font-bold text-muted-foreground">{isEndless ? '实时排名' : '剩余步数'}</p>
+          <p className={cn('font-display text-xl font-extrabold tabular-nums', !isEndless && moves <= 3 ? 'text-destructive' : 'text-foreground')}>
+            {isEndless ? (leaderboard?.myRank ? `#${leaderboard.myRank}` : '—') : moves}
           </p>
         </div>
       </div>
+
+      {isEndless && (
+        <section className="rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-card to-rose-50 px-3 py-2 shadow-sm">
+          <div className="flex items-center justify-between gap-2 text-xs font-bold">
+            <span className="text-violet-600">LIVE 无尽榜</span>
+            <span className="truncate text-rose-500">{distanceHint}</span>
+          </div>
+          <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-0.5">
+            {leaderboard?.entries.slice(0, 3).map((entry) => (
+              <div
+                key={entry.userId}
+                className={cn(
+                  'min-w-[106px] rounded-xl bg-card px-2 py-1.5 text-xs shadow-sm',
+                  entry.rank === leaderboard.myRank && 'ring-2 ring-rose-300',
+                )}
+              >
+                <p className="truncate font-bold">#{entry.rank} {entry.name}</p>
+                <p className="tabular-nums text-muted-foreground">{entry.score.toLocaleString()}</p>
+              </div>
+            ))}
+            {!leaderboard?.entries.length && <span className="text-xs text-muted-foreground">正在连接排行榜…</span>}
+          </div>
+        </section>
+      )}
+
+      {isEndless && (
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => choosePowerup('bomb')}
+            className={cn('rounded-2xl border px-2 py-2 text-xs font-bold transition-transform active:scale-95', activePower === 'bomb' ? 'border-rose-400 bg-rose-100 text-rose-600' : 'border-rose-200 bg-card text-rose-500')}
+          >
+            💣 炸弹 ×{powerups.bomb}
+          </button>
+          <button
+            type="button"
+            onClick={() => choosePowerup('beam')}
+            className={cn('rounded-2xl border px-2 py-2 text-xs font-bold transition-transform active:scale-95', activePower === 'beam' ? 'border-emerald-400 bg-emerald-100 text-emerald-600' : 'border-emerald-200 bg-card text-emerald-600')}
+          >
+            ⚡ 射线 ×{powerups.beam}
+          </button>
+          <button
+            type="button"
+            onClick={useShuffle}
+            className="rounded-2xl border border-amber-200 bg-card px-2 py-2 text-xs font-bold text-amber-600 transition-transform active:scale-95"
+          >
+            🔀 洗牌 ×{powerups.shuffle}
+          </button>
+        </div>
+      )}
 
       {/* 进度条 */}
       <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
@@ -347,6 +524,11 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
 
       {/* 棋盘 + 特效层 */}
       <div className="relative">
+        {rankFlash && (
+          <div className="m3-rank-flash pointer-events-none absolute inset-x-2 top-4 z-30 rounded-2xl bg-gradient-to-r from-rose-500 to-violet-500 px-3 py-2 text-center font-display text-lg font-extrabold text-white shadow-lg">
+            {rankFlash}
+          </div>
+        )}
         <div
           key={shakeKey}
           className={cn(

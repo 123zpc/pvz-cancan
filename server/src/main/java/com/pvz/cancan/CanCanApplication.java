@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 灿灿专属版植物大战僵尸后端启动类。
@@ -13,6 +14,7 @@ import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoCo
  * 在 RedisConfig 中手动创建 LettuceConnectionFactory。
  */
 @SpringBootApplication(exclude = { RedisAutoConfiguration.class, RedisRepositoriesAutoConfiguration.class })
+@EnableScheduling
 public class CanCanApplication {
 
   public static void main(String[] args) {
