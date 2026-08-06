@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, RotateCcw, Sparkles } from 'lucide-react'
+import { ArrowLeft, Bomb, RotateCcw, Shuffle, Sparkles, Zap } from 'lucide-react'
 import {
   calcScore,
   createGrid,
@@ -470,7 +470,7 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
             <span className="text-violet-600">LIVE 无尽榜</span>
             <span className="truncate text-rose-500">{distanceHint}</span>
           </div>
-          <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto pb-0.5">
+          <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto p-1">
             {leaderboard?.entries.slice(0, 3).map((entry) => (
               <div
                 key={entry.userId}
@@ -495,21 +495,21 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
             onClick={() => choosePowerup('bomb')}
             className={cn('rounded-2xl border px-2 py-2 text-xs font-bold transition-transform active:scale-95', activePower === 'bomb' ? 'border-rose-400 bg-rose-100 text-rose-600' : 'border-rose-200 bg-card text-rose-500')}
           >
-            💣 炸弹 ×{powerups.bomb}
+            <Bomb className="mr-1 inline size-3.5" />炸弹 ×{powerups.bomb}
           </button>
           <button
             type="button"
             onClick={() => choosePowerup('beam')}
             className={cn('rounded-2xl border px-2 py-2 text-xs font-bold transition-transform active:scale-95', activePower === 'beam' ? 'border-emerald-400 bg-emerald-100 text-emerald-600' : 'border-emerald-200 bg-card text-emerald-600')}
           >
-            ⚡ 射线 ×{powerups.beam}
+            <Zap className="mr-1 inline size-3.5" />射线 ×{powerups.beam}
           </button>
           <button
             type="button"
             onClick={useShuffle}
             className="rounded-2xl border border-amber-200 bg-card px-2 py-2 text-xs font-bold text-amber-600 transition-transform active:scale-95"
           >
-            🔀 洗牌 ×{powerups.shuffle}
+            <Shuffle className="mr-1 inline size-3.5" />洗牌 ×{powerups.shuffle}
           </button>
         </div>
       )}
