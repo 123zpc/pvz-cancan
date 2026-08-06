@@ -4,10 +4,10 @@ import com.pvz.cancan.model.Progress;
 import com.pvz.cancan.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -20,11 +20,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminService {
 
-  private final RedisTemplate<String, Object> redisTemplate;
+  private static final int MAIN_LEVEL_COUNT = 10;
+  private static final int MATCH3_LEVEL_COUNT = 10;
+
   private final UserService userService;
   private final ProgressService progressService;
-
-  private static final String PROGRESS_PREFIX = "progress:";
 
   /** 列出所有用户及其进度摘要（不返回密码）。 */
   public List<Map<String, Object>> listUsersWithProgress() {
@@ -55,16 +55,36 @@ public class AdminService {
 
   /** 覆盖指定用户进度（管理员修改）。 */
   public void overwriteProgress(String userId, Progress progress) {
-    // 保证必填字段非空
-    if (progress.getUnlocked() == null) progress.setUnlocked(1);
-    if (progress.getCleared() == null) progress.setCleared(List.of());
-    if (progress.getM3Unlocked() == null) progress.setM3Unlocked(1);
-    if (progress.getM3Cleared() == null) progress.setM3Cleared(List.of());
-    if (progress.getTotalPlayTimeSec() == null) progress.setTotalPlayTimeSec(0L);
-    if (progress.getLevelBestTimes() == null) progress.setLevelBestTimes(new HashMap<>());
-    if (progress.getM3LevelBestTimes() == null) progress.setM3LevelBestTimes(new HashMap<>());
-    if (progress.getLastPlayedAt() == null) progress.setLastPlayedAt(System.currentTimeMillis());
-    redisTemplate.opsForValue().set(PROGRESS_PREFIX + userId, progress);
+    progressService.overwrite(userId, progress);
     log.info("管理员覆盖用户 {} 进度：unlocked={}, cleared={}", userId, progress.getUnlocked(), progress.getCleared());
+  }
+
+  /** 为一个或多个用户补录指定关卡的通关记录。 */
+  public void addClearedLevels(List<String> userIds, List<Integer> levelIds, String game) {
+    if (userIds == null || userIds.isEmpty()) {
+      throw new IllegalArgumentException("请至少选择一个用户");
+    }
+    boolean match3;
+    if ("pvz".equals(game)) {
+      match3 = false;
+    } else if ("m3".equals(game)) {
+      match3 = true;
+    } else {
+      throw new IllegalArgumentException("游戏类型只能是 pvz 或 m3");
+    }
+
+    LinkedHashSet<String> targetIds = new LinkedHashSet<>();
+    for (String userId : userIds) {
+      if (userId == null || userId.isBlank() || userService.getByUserId(userId) == null) {
+        throw new IllegalArgumentException("包含不存在的用户");
+      }
+      targetIds.add(userId);
+    }
+
+    int totalLevels = match3 ? MATCH3_LEVEL_COUNT : MAIN_LEVEL_COUNT;
+    for (String userId : targetIds) {
+      progressService.addClearedLevels(userId, match3, levelIds, totalLevels);
+    }
+    log.info("管理员为用户 {} 补录 {} 关卡通关记录：{}", targetIds, game, levelIds);
   }
 }

@@ -99,6 +99,8 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
   const [scorePops, setScorePops] = useState<ScorePopFx[]>([])
   const [combo, setCombo] = useState(0) // 连续触发的连消次数（≥2 链才算）
   const [shakeKey, setShakeKey] = useState(0)
+  /** 被拒绝交换的格子（用于摇头反馈） */
+  const [rejectCell, setRejectCell] = useState<[number, number] | null>(null)
   /** 本局开始时间戳（毫秒），用于计算通关用时 */
   const startedAtRef = useRef<number>(0)
   const wonRef = useRef(false)
@@ -134,6 +136,7 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
     setScorePops([])
     setCombo(0)
     setShakeKey(0)
+    setRejectCell(null)
     startedAtRef.current = Date.now()
     wonRef.current = false
   }, [level])
@@ -184,8 +187,10 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
       // 尝试交换
       const swapped = swap(grid, [sr, sc], [r, c])
       if (findMatches(swapped).size === 0) {
-        // 无效交换，不扣步数，只取消选中
-        setSelected(null)
+        // 无效交换：不扣步数，给目标格子摇头反馈，并把新格子设为选中便于继续尝试
+        setRejectCell([r, c])
+        setTimeout(() => setRejectCell(null), 400)
+        setSelected([r, c])
         return
       }
       setBusy(true)
@@ -265,8 +270,8 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
       setGrid(finalGrid)
       setScore((s) => s + gained)
 
-      // 总耗时
-      setTimeout(() => setBusy(false), 240 + maxDelay)
+      // busy 只需等 React 渲染新网格即可（约一帧），特效有自己的清理定时器
+      setTimeout(() => setBusy(false), 50)
     },
     [busy, status, selected, grid, level, pushBurst, pushEgg, pushShake],
   )
@@ -353,6 +358,7 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
           {grid.map((row, r) =>
             row.map((cell, c) => {
               const isSel = selected && selected[0] === r && selected[1] === c
+              const isReject = rejectCell && rejectCell[0] === r && rejectCell[1] === c
               const tile = cell ? TILE_TYPES[cell.type] : null
               return (
                 <button
@@ -362,6 +368,7 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
                   className={cn(
                     'relative aspect-square rounded-xl bg-card/90 shadow-sm transition-all',
                     isSel ? 'ring-4 ring-primary scale-105 z-10 m3-sel-pulse' : 'hover:bg-card hover:scale-105',
+                    isReject && 'm3-reject-shake',
                   )}
                   style={tile ? { backgroundColor: `${tile.color}22` } : undefined}
                 >

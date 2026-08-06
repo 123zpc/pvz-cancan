@@ -15,9 +15,12 @@ import {
 import { LEVELS } from '@/lib/game/data'
 import { MATCH3_LEVELS } from '@/lib/game/match3'
 import {
+  adminAddClearedLevels,
+  adminCreateUser,
   adminGetUser,
   adminListUsers,
   adminOverwriteUser,
+  type AdminGame,
   type AdminUserSummary,
   type Progress,
 } from '@/lib/api'
@@ -109,6 +112,8 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
         />
       </section>
 
+      <DataManagement users={users} onChanged={refresh} />
+
       {error && (
         <div className="mb-4 rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-sm text-red-600">
           {error}
@@ -153,6 +158,138 @@ function StatCard({ label, value }: { label: string; value: string }) {
 }
 
 /* ── 用户卡片 ── */
+function DataManagement({ users, onChanged }: { users: AdminUserSummary[]; onChanged: () => Promise<void> }) {
+  const [newUserId, setNewUserId] = useState('')
+  const [newUserName, setNewUserName] = useState('')
+  const [targetUserIds, setTargetUserIds] = useState<string[]>([])
+  const [levelInput, setLevelInput] = useState('')
+  const [game, setGame] = useState<AdminGame>('pvz')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleCreateUser = async () => {
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      await adminCreateUser(newUserId, newUserName)
+      setNewUserId('')
+      setNewUserName('')
+      setMessage('用户已新增，登录密码就是用户 ID。')
+      await onChanged()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '新增用户失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleAddCleared = async () => {
+    const levelIds = [...new Set(
+      levelInput
+        .split(/[，,\s]+/)
+        .filter(Boolean)
+        .map(Number)
+        .filter((level) => Number.isInteger(level)),
+    )]
+    if (targetUserIds.length === 0) {
+      setError('请至少选择一位用户')
+      return
+    }
+    if (levelIds.length === 0) {
+      setError('请输入关卡编号，例如 1,2,3')
+      return
+    }
+
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      await adminAddClearedLevels(targetUserIds, levelIds, game)
+      setMessage('通关记录已补录，并已自动解锁到下一关。')
+      await onChanged()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '补录通关记录失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <details className="mb-5 rounded-2xl border-2 border-primary/25 bg-primary/5 p-4">
+      <summary className="cursor-pointer font-display text-sm font-extrabold text-primary">
+        数据管理（Redis）
+      </summary>
+      <div className="mt-4 space-y-5">
+        <section>
+          <p className="text-sm font-bold">新增用户</p>
+          <p className="mt-1 text-xs text-muted-foreground">用户 ID 同时作为登录密码。</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <input
+              value={newUserId}
+              onChange={(e) => setNewUserId(e.target.value)}
+              placeholder="用户 ID，例如 002524"
+              className="rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+            <input
+              value={newUserName}
+              onChange={(e) => setNewUserName(e.target.value)}
+              placeholder="昵称"
+              className="rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <Button className="mt-2 w-full rounded-xl" onClick={handleCreateUser} disabled={busy}>
+            新增用户
+          </Button>
+        </section>
+
+        <section className="border-t border-primary/15 pt-4">
+          <p className="text-sm font-bold">批量补录通关记录</p>
+          <p className="mt-1 text-xs text-muted-foreground">选择用户和关卡后，写入 Redis 的 cleared，并自动解锁下一关。</p>
+          <div className="mt-2 grid max-h-32 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-border bg-background p-2">
+            {users.map((user) => (
+              <label key={user.userId} className="flex min-w-0 items-center gap-1.5 text-xs text-foreground">
+                <input
+                  type="checkbox"
+                  checked={targetUserIds.includes(user.userId)}
+                  onChange={(e) => setTargetUserIds((ids) => (
+                    e.target.checked ? [...ids, user.userId] : ids.filter((id) => id !== user.userId)
+                  ))}
+                />
+                <span className="truncate">{user.name}（{user.userId}）</span>
+              </label>
+            ))}
+          </div>
+          <div className="mt-2 grid grid-cols-[auto_1fr] gap-2">
+            <select
+              value={game}
+              onChange={(e) => setGame(e.target.value as AdminGame)}
+              className="rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+              aria-label="选择游戏"
+            >
+              <option value="pvz">主游戏</option>
+              <option value="m3">消消乐</option>
+            </select>
+            <input
+              value={levelInput}
+              onChange={(e) => setLevelInput(e.target.value)}
+              placeholder="关卡，如 1,2,3"
+              className="min-w-0 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <Button className="mt-2 w-full rounded-xl" onClick={handleAddCleared} disabled={busy || users.length === 0}>
+            补录通关
+          </Button>
+        </section>
+
+        {message && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{message}</p>}
+        {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
+      </div>
+    </details>
+  )
+}
+
 function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void }) {
   const pvzTotal = LEVELS.length
   const m3Total = MATCH3_LEVELS.length
@@ -182,11 +319,13 @@ function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void
       <div className="mt-3 grid grid-cols-2 gap-3">
         <ProgressMini
           label="主游戏"
+          unlocked={user.unlocked}
           cleared={user.clearedCount}
           total={pvzTotal}
         />
         <ProgressMini
           label="消消乐"
+          unlocked={user.m3Unlocked}
           cleared={user.m3ClearedCount}
           total={m3Total}
         />
@@ -195,13 +334,15 @@ function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void
   )
 }
 
-function ProgressMini({ label, cleared, total }: { label: string; cleared: number; total: number }) {
-  const pct = total > 0 ? Math.round((cleared / total) * 100) : 0
+function ProgressMini({ label, unlocked, cleared, total }: { label: string; unlocked: number; cleared: number; total: number }) {
+  const unlockedCount = Math.min(Math.max(unlocked, 0), total)
+  const clearedCount = Math.min(Math.max(cleared, 0), total)
+  const pct = total > 0 ? Math.round((unlockedCount / total) * 100) : 0
   return (
     <div>
       <div className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
         <span>{label}</span>
-        <span className="tabular-nums">{cleared}/{total}</span>
+        <span className="tabular-nums">解锁 {unlockedCount}/{total}</span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
         <div
@@ -209,6 +350,7 @@ function ProgressMini({ label, cleared, total }: { label: string; cleared: numbe
           style={{ width: `${pct}%` }}
         />
       </div>
+      <p className="mt-1 text-[11px] text-muted-foreground">通关 {clearedCount}/{total}</p>
     </div>
   )
 }

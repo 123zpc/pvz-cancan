@@ -108,7 +108,9 @@ interface GameCardProps {
 }
 
 function GameCard({ title, subtitle, icon, cleared, total, unlocked, onClick, decoration }: GameCardProps) {
-  const pct = total > 0 ? Math.round((cleared / total) * 100) : 0
+  const unlockedCount = Math.min(Math.max(unlocked, 0), total)
+  const clearedCount = Math.min(Math.max(cleared, 0), total)
+  const pct = total > 0 ? Math.round((unlockedCount / total) * 100) : 0
   return (
     <button
       type="button"
@@ -131,8 +133,8 @@ function GameCard({ title, subtitle, icon, cleared, total, unlocked, onClick, de
 
       <div className="mt-4">
         <div className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
-          <span>通关进度</span>
-          <span className="tabular-nums">{cleared}/{total}</span>
+          <span>游戏进度</span>
+          <span className="tabular-nums">{unlockedCount}/{total}</span>
         </div>
         <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
           <div
@@ -142,7 +144,7 @@ function GameCard({ title, subtitle, icon, cleared, total, unlocked, onClick, de
         </div>
         <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
           <Trophy className="size-3" />
-          已解锁 {unlocked}/{total} 关
+          已通关 {clearedCount}/{total} 关
         </p>
       </div>
     </button>

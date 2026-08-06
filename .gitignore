@@ -20,6 +20,9 @@ node_modules
 .next/
 .DS_Store
 
+# JAR build artifacts
+*.jar
+
 # Logs
 *.log
 npm-debug.log*

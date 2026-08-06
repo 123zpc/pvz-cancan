@@ -12,7 +12,7 @@
 export const API_BASE =
   process.env.NODE_ENV === 'production'
     ? ''
-    : process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8080'
+    : process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8081'
 
 /** 进度数据结构：主游戏 + 消消乐 + 用时统计 */
 export interface Progress {
@@ -52,6 +52,8 @@ export interface AdminUserSummary {
   m3LevelBestTimes: Record<number, number>
   lastPlayedAt: number
 }
+
+export type AdminGame = 'pvz' | 'm3'
 
 const TOKEN_KEY = 'pvz-cancan-token'
 const NAME_KEY = 'pvz-cancan-name'
@@ -152,6 +154,28 @@ export async function saveProgress(progress: Progress): Promise<void> {
 export async function adminListUsers(): Promise<AdminUserSummary[]> {
   const data = await request<{ users: AdminUserSummary[] }>('/api/admin/users', { auth: true })
   return data.users
+}
+
+/** 管理员新增用户。新用户的登录密码即用户 ID。 */
+export async function adminCreateUser(userId: string, name: string): Promise<void> {
+  await request<{ success: boolean }>('/api/admin/users', {
+    method: 'POST',
+    body: JSON.stringify({ userId, name }),
+    auth: true,
+  })
+}
+
+/** 管理员批量补录通关记录，并自动解锁到下一关。 */
+export async function adminAddClearedLevels(
+  userIds: string[],
+  levelIds: number[],
+  game: AdminGame,
+): Promise<void> {
+  await request<{ success: boolean }>('/api/admin/progress/cleared', {
+    method: 'POST',
+    body: JSON.stringify({ userIds, levelIds, game }),
+    auth: true,
+  })
 }
 
 /** 读取指定用户完整进度。 */

@@ -46,19 +46,20 @@ export interface Match3Level {
 
 /**
  * 消消乐 10 关：与主游戏关卡呼应。
- * 难度曲线：target/moves 从 30 平滑递增到 300，元素 4→5→6，网格 7×7→8×8→9×9。
+ * 难度曲线：target 从 2000 递增到 16000，元素 4→5→6，网格 7×7→8×8→9×9。
+ * 分数基准：3 连=100/格（300），4 连=150/格（600），5 连=200/格（1000），链消每层 ×1.5。
  */
 export const MATCH3_LEVELS: Match3Level[] = [
-  { id: 1,  name: '初遇', subtitle: '心动的那一刻', rows: 7, cols: 7, tileCount: 4, target: 600,  moves: 20, message: '第一次消消乐，就像第一次心动。', theme: 'sunny' },
-  { id: 2,  name: '约会', subtitle: '带上坚果出门', rows: 7, cols: 7, tileCount: 4, target: 900,  moves: 18, message: '愿每一次约会都甜甜蜜蜜。', theme: 'rose' },
-  { id: 3,  name: '暖冬', subtitle: '阳光稀少但有你', rows: 7, cols: 7, tileCount: 5, target: 1400, moves: 18, message: '冬夜再长，有你就暖。', theme: 'ice' },
-  { id: 4,  name: '磨合', subtitle: '一起面对困难', rows: 8, cols: 8, tileCount: 5, target: 2000, moves: 20, message: '磨合的日子，也有甜。', theme: 'mint' },
-  { id: 5,  name: '守护', subtitle: '用一生去守护', rows: 8, cols: 8, tileCount: 6, target: 2600, moves: 20, message: '守护你，是我最大的愿望。', theme: 'cherry' },
-  { id: 6,  name: '早晨', subtitle: '醒来有你在',   rows: 8, cols: 8, tileCount: 6, target: 3200, moves: 20, message: '早安，灿灿。', theme: 'dawn' },
-  { id: 7,  name: '雨天', subtitle: '风雨中有我',   rows: 8, cols: 8, tileCount: 6, target: 4000, moves: 22, message: '下雨天，窝在一起。', theme: 'rain' },
-  { id: 8,  name: '日常', subtitle: '平凡也幸福',   rows: 9, cols: 9, tileCount: 6, target: 5000, moves: 22, message: '和你过的每一天都很甜。', theme: 'milk' },
-  { id: 9,  name: '星空', subtitle: '一起数星星',   rows: 9, cols: 9, tileCount: 6, target: 6000, moves: 22, message: '星星再亮，也不如你亮。', theme: 'star' },
-  { id: 10, name: '永远', subtitle: '一生的承诺',   rows: 9, cols: 9, tileCount: 6, target: 7200, moves: 24, message: '灿灿，往后余生，多多关照。', theme: 'gold' },
+  { id: 1,  name: '初遇', subtitle: '心动的那一刻', rows: 7, cols: 7, tileCount: 4, target: 2000,  moves: 20, message: '第一次消消乐，就像第一次心动。', theme: 'sunny' },
+  { id: 2,  name: '约会', subtitle: '带上坚果出门', rows: 7, cols: 7, tileCount: 4, target: 2800,  moves: 18, message: '愿每一次约会都甜甜蜜蜜。', theme: 'rose' },
+  { id: 3,  name: '暖冬', subtitle: '阳光稀少但有你', rows: 7, cols: 7, tileCount: 5, target: 3600, moves: 18, message: '冬夜再长，有你就暖。', theme: 'ice' },
+  { id: 4,  name: '磨合', subtitle: '一起面对困难', rows: 8, cols: 8, tileCount: 5, target: 5000,  moves: 20, message: '磨合的日子，也有甜。', theme: 'mint' },
+  { id: 5,  name: '守护', subtitle: '用一生去守护', rows: 8, cols: 8, tileCount: 6, target: 6500,  moves: 20, message: '守护你，是我最大的愿望。', theme: 'cherry' },
+  { id: 6,  name: '早晨', subtitle: '醒来有你在',   rows: 8, cols: 8, tileCount: 6, target: 8000,  moves: 20, message: '早安，灿灿。', theme: 'dawn' },
+  { id: 7,  name: '雨天', subtitle: '风雨中有我',   rows: 8, cols: 8, tileCount: 6, target: 9500,  moves: 22, message: '下雨天，窝在一起。', theme: 'rain' },
+  { id: 8,  name: '日常', subtitle: '平凡也幸福',   rows: 9, cols: 9, tileCount: 6, target: 11500, moves: 22, message: '和你过的每一天都很甜。', theme: 'milk' },
+  { id: 9,  name: '星空', subtitle: '一起数星星',   rows: 9, cols: 9, tileCount: 6, target: 13500, moves: 22, message: '星星再亮，也不如你亮。', theme: 'star' },
+  { id: 10, name: '永远', subtitle: '一生的承诺',   rows: 9, cols: 9, tileCount: 6, target: 16000, moves: 24, message: '灿灿，往后余生，多多关照。', theme: 'gold' },
 ]
 
 /** 网格单元 */

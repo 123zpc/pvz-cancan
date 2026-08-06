@@ -85,7 +85,6 @@ export default function Page() {
     // 有 token：尝试从后端拉进度，失败则清登录态
     getProgress()
       .then((p) => {
-        setAuthed(true)
         setUserName(getUserName() ?? '')
         setUserId(getUserId() ?? '')
         setUnlocked(Math.max(1, Math.min(LEVELS.length, p.unlocked ?? 1)))
@@ -95,6 +94,8 @@ export default function Page() {
         setTotalPlayTimeSec(p.totalPlayTimeSec ?? 0)
         setLevelBestTimes(p.levelBestTimes ?? {})
         setM3LevelBestTimes(p.m3LevelBestTimes ?? {})
+        // 云端进度写入状态后才启用自动保存，避免初始第 1 关覆盖它。
+        setAuthed(true)
       })
       .catch(() => {
         // token 失效或后端不可达：清除登录态，回登录页
@@ -107,7 +108,6 @@ export default function Page() {
     setPwLoading(true)
     try {
       const result = await apiLogin(pwInput)
-      setAuthed(true)
       setUserName(result.name)
       setUserId(result.userId)
       // 登录后拉取云端进度
@@ -128,6 +128,8 @@ export default function Page() {
         setM3Unlocked(local.m3Unlocked ?? 1)
         setM3Cleared(local.m3Cleared ?? [])
       }
+      // 等云端进度（或本地兜底）写入状态后再保存，避免初始第 1 关发生竞态覆盖。
+      setAuthed(true)
     } catch {
       setPwError(true)
       setTimeout(() => setPwError(false), 600)

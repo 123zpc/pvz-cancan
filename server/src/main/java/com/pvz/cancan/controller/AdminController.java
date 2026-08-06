@@ -1,5 +1,7 @@
 package com.pvz.cancan.controller;
 
+import com.pvz.cancan.model.AddClearedLevelsRequest;
+import com.pvz.cancan.model.CreateUserRequest;
 import com.pvz.cancan.model.Progress;
 import com.pvz.cancan.service.AdminService;
 import com.pvz.cancan.service.UserService;
@@ -40,6 +42,20 @@ public class AdminController {
     return ResponseEntity.ok(Map.of("users", users));
   }
 
+  @PostMapping("/users")
+  public ResponseEntity<?> createUser(@RequestHeader(value = "Authorization", required = false) String auth,
+                                      @RequestBody CreateUserRequest request) {
+    String adminId = auth(auth);
+    if (adminId == null) return unauthorized();
+    if (!userService.isAdmin(adminId)) return forbidden();
+    try {
+      var user = userService.createUser(request.getUserId(), request.getName());
+      return ResponseEntity.ok(Map.of("success", true, "userId", user.getPassword(), "name", user.getName()));
+    } catch (IllegalArgumentException e) {
+      return badRequest(e.getMessage());
+    }
+  }
+
   @GetMapping("/users/{userId}")
   public ResponseEntity<?> getUser(@RequestHeader(value = "Authorization", required = false) String auth,
                                      @PathVariable String userId) {
@@ -66,6 +82,20 @@ public class AdminController {
     return ResponseEntity.ok(Map.of("success", true));
   }
 
+  @PostMapping("/progress/cleared")
+  public ResponseEntity<?> addClearedLevels(@RequestHeader(value = "Authorization", required = false) String auth,
+                                             @RequestBody AddClearedLevelsRequest request) {
+    String adminId = auth(auth);
+    if (adminId == null) return unauthorized();
+    if (!userService.isAdmin(adminId)) return forbidden();
+    try {
+      adminService.addClearedLevels(request.getUserIds(), request.getLevelIds(), request.getGame());
+      return ResponseEntity.ok(Map.of("success", true));
+    } catch (IllegalArgumentException e) {
+      return badRequest(e.getMessage());
+    }
+  }
+
   /** 从 Authorization 头解析 token 并校验，返回 userId 或 null。 */
   private String auth(String authHeader) {
     if (authHeader == null || !authHeader.startsWith("Bearer ")) return null;
@@ -79,5 +109,9 @@ public class AdminController {
 
   private ResponseEntity<?> forbidden() {
     return ResponseEntity.status(403).body(Map.of("error", "无权访问管理后台"));
+  }
+
+  private ResponseEntity<?> badRequest(String message) {
+    return ResponseEntity.badRequest().body(Map.of("error", message));
   }
 }
