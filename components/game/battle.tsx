@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Maximize, Minimize, Pause, Play, RotateCcw, Skull } from 'lucide-react'
 import { PLANTS, type Level, type PlantId } from '@/lib/game/data'
 import { collectSun, createGame, digPlant, placePlant, step, type GameState } from '@/lib/game/engine'
+import { audio } from '@/lib/game/audio'
 import { Button } from '@/components/ui/button'
 import { Board } from './board'
+import { MusicToggle, MusicToggleFull } from './music-toggle'
 import { SeedBank } from './seed-bank'
 
 interface BattleProps {
@@ -30,6 +32,9 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
   /** 本局开始时间戳（毫秒），用于计算通关用时 */
   const startedAtRef = useRef<number>(0)
   const wonRef = useRef(false)
+  const lostRef = useRef(false)
+  /** 上一帧状态快照，用于检测变化并触发音效 */
+  const prevRef = useRef({ killed: 0, effects: 0, peas: 0, bigWave: false, mowers: 0 })
 
   /** iOS Safari 不支持 Fullscreen API，只能通过"添加到主屏幕"实现全屏 */
   const isIOS = useCallback(() => {
@@ -54,6 +59,8 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
     setPaused(false)
     startedAtRef.current = Date.now()
     wonRef.current = false
+    lostRef.current = false
+    prevRef.current = { killed: 0, effects: 0, peas: 0, bigWave: false, mowers: 0 }
   }, [level, round])
 
   useEffect(() => {
@@ -79,13 +86,46 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
       const g = gameRef.current
-      if (!pausedRef.current) step(g, dt)
+      if (!pausedRef.current) {
+        step(g, dt)
+        // 音效检测：对比上一帧状态
+        const prev = prevRef.current
+        if (g.killed > prev.killed) audio.playZombieDie()
+        // 检测爆炸特效（樱桃炸弹）
+        const boomCount = g.effects.filter((e) => e.kind === 'boom').length
+        const prevBoom = prev.effects
+        if (boomCount > prevBoom) audio.playExplosion()
+        // 检测豌豆射击（新豌豆 = 射击事件）
+        if (g.peas.length > prev.peas) {
+          // 检查是否为冰冻射击
+          const newPeas = g.peas.slice(prev.peas)
+          if (newPeas.some((p) => p.freeze)) audio.playFreezeShoot()
+          else audio.playShoot()
+        }
+        // 大波僵尸警报
+        if (g.bigWaveShown && !prev.bigWave) audio.playBigWave()
+        // 小推车
+        if (g.mowers.filter((m) => m.running).length > prev.mowers) audio.playMower()
+        prevRef.current = {
+          killed: g.killed,
+          effects: boomCount,
+          peas: g.peas.length,
+          bigWave: g.bigWaveShown,
+          mowers: g.mowers.filter((m) => m.running).length,
+        }
+      }
       force((f) => f + 1)
       if (g.status === 'playing') raf = requestAnimationFrame(loop)
       else if (g.status === 'won' && !wonRef.current) {
         wonRef.current = true
         const timeSec = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000))
+        audio.playWin()
         onWin(g.level.id, timeSec)
+      } else if (g.status === 'lost') {
+        if (!lostRef.current) {
+          lostRef.current = true
+          audio.playLose()
+        }
       }
     }
     raf = requestAnimationFrame(loop)
@@ -100,17 +140,26 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
       if (g.status !== 'playing') return
       if (shovel) {
         const p = g.plants.find((x) => x.row === row && x.col === col)
-        if (p) digPlant(g, p.uid)
+        if (p) {
+          digPlant(g, p.uid)
+          audio.playDig()
+        }
         setShovel(false)
         return
       }
       if (!selected) return
-      if (placePlant(g, selected, row, col)) setSelected(null)
+      if (placePlant(g, selected, row, col)) {
+        audio.playPlant()
+        setSelected(null)
+      }
     },
     [selected, shovel],
   )
 
-  const handleSun = useCallback((uid: number) => collectSun(gameRef.current, uid), [])
+  const handleSun = useCallback((uid: number) => {
+    collectSun(gameRef.current, uid)
+    audio.playSun()
+  }, [])
 
   const tryLandscape = useCallback(async () => {
     try {
@@ -185,6 +234,7 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
               {isFullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
               <span className="sr-only">{isFullscreen ? '退出全屏' : '全屏'}</span>
             </Button>
+            <MusicToggle mode="sfx" />
           </div>
         </header>
 
@@ -412,6 +462,7 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
               {isFullscreen ? <Minimize className="size-3.5" /> : <Maximize className="size-3.5" />}
               <span className="sr-only">{isFullscreen ? '退出全屏' : '全屏'}</span>
             </Button>
+            <MusicToggleFull mode="sfx" />
           </div>
         </div>
 

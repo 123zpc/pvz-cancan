@@ -1,8 +1,10 @@
 'use client'
 
 import { ArrowLeft, Gamepad2, Puzzle, Trophy } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { PlantSprite, SunSprite, ZombieSprite } from './sprites'
+import { audio } from '@/lib/game/audio'
+import { MusicToggle } from './music-toggle'
 
 interface GamesHubProps {
   onBack: () => void
@@ -29,15 +31,23 @@ export function GamesHub({
   m3Cleared,
   m3Total,
 }: GamesHubProps) {
+  useEffect(() => {
+    audio.startMusic('menu')
+    return () => { audio.stopMusic() }
+  }, [])
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
-      <button
-        onClick={onBack}
-        className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        返回菜单
-      </button>
+      <div className="mb-6 flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          返回菜单
+        </button>
+        <MusicToggle />
+      </div>
 
       <section className="relative overflow-hidden rounded-3xl border-4 border-primary/25 bg-lawn p-6 shadow-lg sm:p-10">
         <div className="relative z-10 max-w-xl">

@@ -1,7 +1,10 @@
 'use client'
 
+import { useEffect } from 'react'
 import { BookHeart, Gamepad2, Gift, LogOut, ShieldCheck } from 'lucide-react'
 import { PlantSprite, SunSprite, ZombieSprite } from './sprites'
+import { audio } from '@/lib/game/audio'
+import { MusicToggle } from './music-toggle'
 
 interface MainMenuProps {
   onPlay: () => void
@@ -13,6 +16,13 @@ interface MainMenuProps {
 }
 
 export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout }: MainMenuProps) {
+  useEffect(() => {
+    audio.startMusic('menu')
+    return () => {
+      audio.stopMusic()
+    }
+  }, [])
+
   return (
     <main className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-center overflow-hidden px-4 py-8">
       {/* 飘心背景装饰 */}
@@ -86,7 +96,7 @@ export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout
         小朱制作 · 送给最灿烂的你
       </p>
 
-      {/* 右上角：用户名 + 退出登录 */}
+      {/* 右上角：用户名 + 退出登录 + 音乐 */}
       {userName && (
         <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-full bg-card/85 px-3 py-1.5 text-xs shadow-md backdrop-blur">
           <span className="font-bold text-foreground">你好，{userName}</span>
@@ -103,6 +113,10 @@ export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout
           )}
         </div>
       )}
+      {/* 音乐开关 */}
+      <div className="absolute right-4 top-16 z-20">
+        <MusicToggle />
+      </div>
     </main>
   )
 }

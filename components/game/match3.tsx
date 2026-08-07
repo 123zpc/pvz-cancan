@@ -21,8 +21,10 @@ import {
   submitEndlessScore,
   type EndlessLeaderboard,
 } from '@/lib/api'
+import { audio } from '@/lib/game/audio'
 import { PlantSprite, ZombieSprite } from './sprites'
 import { Button } from '@/components/ui/button'
+import { MusicToggle } from './music-toggle'
 import { cn } from '@/lib/utils'
 
 interface Match3Props {
@@ -205,10 +207,12 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
       if (!wonRef.current) {
         wonRef.current = true
         const timeSec = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000))
+        audio.playMatch3Win()
         onWin(level.id, timeSec)
       }
     } else if (!isEndless && status === 'playing' && moves <= 0 && score < level.target) {
       setStatus('lost')
+      audio.playLose()
     }
   }, [score, moves, status, level, onWin, isEndless])
 
@@ -234,6 +238,7 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
     setSelected(null)
     setActivePower(null)
     pushEgg('阳光洗牌！', '#f59e0b', 0)
+    audio.playPowerup('shuffle')
   }, [busy, powerups.shuffle, level, pushEgg])
 
   const handlePowerTarget = useCallback((r: number, c: number) => {
@@ -271,6 +276,7 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
     pushBurst(0)
     pushShake()
     pushEgg(activePower === 'bomb' ? '樱桃炸弹！' : '豌豆射线！', activePower === 'bomb' ? '#f43f5e' : '#22c55e', 0)
+    audio.playPowerup(activePower)
     setTimeout(() => setBusy(false), 80)
   }, [activePower, busy, status, level, grid, score, isEndless, pushBurst, pushEgg, pushShake])
 
@@ -370,6 +376,10 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
         pushEgg(`${chains} 连消！`, '#f59e0b', maxDelay)
       }
 
+      // 音效
+      if (chains >= 2) audio.playChain(chains)
+      else audio.playMatch()
+
       // 6. 连击计数（≥2 链才算 combo）
       if (chains >= 2) {
         setCombo((c) => c + 1)
@@ -442,6 +452,7 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
         <Button variant="secondary" size="icon" className="rounded-full" onClick={reset} title="重新开始">
           <RotateCcw className="size-4" />
         </Button>
+        <MusicToggle mode="sfx" />
       </header>
 
       {/* 数据面板 */}

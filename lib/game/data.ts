@@ -1,7 +1,7 @@
 export const COLS = 9
 export const ROWS = 5
 
-export type PlantId = 'sunflower' | 'peashooter' | 'wallnut' | 'snowpea' | 'repeater' | 'cherry'
+export type PlantId = 'sunflower' | 'peashooter' | 'wallnut' | 'snowpea' | 'repeater' | 'cherry' | 'cactus' | 'coconut'
 
 export interface PlantDef {
   id: PlantId
@@ -17,6 +17,8 @@ export interface PlantDef {
   /** 每次开火发射几颗 */
   shots?: number
   freeze?: boolean
+  /** 生产者每次产出的阳光值，默认 25 */
+  sunValue?: number
   desc: string
 }
 
@@ -86,9 +88,32 @@ export const PLANTS: Record<PlantId, PlantDef> = {
     kind: 'bomb',
     desc: '放下后 1.2 秒引爆，清空周围 3×3 的僵尸。',
   },
+  cactus: {
+    id: 'cactus',
+    name: '仙人掌',
+    cost: 125,
+    hp: 300,
+    recharge: 7,
+    kind: 'shooter',
+    interval: 1.8,
+    damage: 30,
+    shots: 1,
+    desc: '沙漠里的小刺头，射出尖刺穿透沙滩上的僵尸，又快又疼。',
+  },
+  coconut: {
+    id: 'coconut',
+    name: '椰子树',
+    cost: 75,
+    hp: 350,
+    recharge: 6,
+    kind: 'producer',
+    interval: 10,
+    sunValue: 35,
+    desc: '高大的椰子树，每 10 秒产出 35 点阳光，在海边格外茂盛。',
+  },
 }
 
-export type ZombieId = 'normal' | 'cone' | 'bucket' | 'imp' | 'brute'
+export type ZombieId = 'normal' | 'cone' | 'bucket' | 'imp' | 'brute' | 'swimring'
 
 export interface ZombieDef {
   id: ZombieId
@@ -109,6 +134,7 @@ export const ZOMBIES: Record<ZombieId, ZombieDef> = {
   bucket: { id: 'bucket', name: '铁桶僵尸', hp: 750, speed: 0.2, bite: 50, biteInterval: 0.5, desc: '铁桶护头，非常硬' },
   imp: { id: 'imp', name: '小鬼僵尸', hp: 110, speed: 0.46, bite: 40, biteInterval: 0.45, desc: '个子小，跑得快' },
   brute: { id: 'brute', name: '壮汉僵尸', hp: 1200, speed: 0.3, bite: 80, biteInterval: 0.45, desc: '又快又厚的大块头' },
+  swimring: { id: 'swimring', name: '泳圈僵尸', hp: 280, speed: 0.28, bite: 50, biteInterval: 0.5, desc: '套着泳圈漂来的沙滩僵尸，速度不慢，很会享受。' },
 }
 
 export interface Spawn {
@@ -129,7 +155,7 @@ export interface Level {
   /** 故事页章节高亮句（可选，仅终章使用） */
   storyHighlight?: string
   /** 故事页章节配色主题 */
-  storyTheme: 'sunny' | 'rose' | 'ice' | 'mint' | 'cherry' | 'dawn' | 'rain' | 'milk' | 'star' | 'gold'
+  storyTheme: 'sunny' | 'rose' | 'ice' | 'mint' | 'cherry' | 'dawn' | 'rain' | 'milk' | 'star' | 'gold' | 'ocean' | 'wheel' | 'green' | 'candy' | 'fire'
   night: boolean
   startSun: number
   /** 自然阳光间隔（秒），0 表示不掉落 */
@@ -376,6 +402,125 @@ export const LEVELS: Level[] = [
       ...group(120, 1.5, 'brute', [1, 3]),
       ...group(124, 1.5, 'imp', [0, 2, 4, 1, 3]),
       ...group(130, 1.5, 'cone', [2, 0, 4, 1, 3]),
+    ],
+  },
+  {
+    id: 11,
+    name: '脏脏海',
+    subtitle: '白天 · 热到融化',
+    hint: '太阳很大，海上脏脏的，别人都在挖蛤蜊，我们站在岸边没下去。仙人掌是沙滩上的射手，坚果挡前排，就像在烈日下撑着伞。',
+    message: '海虽然脏脏的，天虽然热得要命，但牵着你的手站在岸边，比什么都好。',
+    story: '那天热到融化。海不是想象中的蔚蓝，脏脏的，别人都在挖蛤蜊。我们没下去，就站在岸边，吹着黏糊糊的海风，和你在一起，脏脏的海也变得可爱。',
+    storyTheme: 'ocean',
+    night: false,
+    startSun: 150,
+    sunInterval: 6.5,
+    plants: ['sunflower', 'peashooter', 'wallnut', 'snowpea', 'cactus'],
+    finalWaveAt: 105,
+    spawns: [
+      ...group(14, 0, 'normal', [2]),
+      ...group(26, 3.5, 'swimring', [0, 4]),
+      ...group(42, 4, 'cone', [1, 3]),
+      ...group(60, 3, 'imp', [2, 0, 4]),
+      ...group(78, 4, 'swimring', [3, 1, 2]),
+      ...group(105, 2, 'cone', [0, 2, 4]),
+      ...group(108, 2, 'imp', [1, 3, 2, 0]),
+    ],
+  },
+  {
+    id: 12,
+    name: '摩天轮',
+    subtitle: '傍晚 · 没坐上去的浪漫',
+    hint: '没坐摩天轮，只在傍晚的河边散步，灯亮了，天暗了，你就在身旁。椰子树是高产阳光来源，寒冰射手减速，樱桃炸弹留给大波僵尸。',
+    message: '摩天轮我们没坐，但傍晚散步的那段路，比任何摩天轮都浪漫。',
+    story: '傍晚我们走到了摩天轮下面，在周围散步。河边的灯一盏一盏亮起来，天慢慢暗下去，风凉凉的。你走在我旁边，有一搭没一搭地聊天，比坐在摩天轮上还让人觉得踏实。',
+    storyTheme: 'wheel',
+    night: true,
+    startSun: 200,
+    sunInterval: 0,
+    plants: ['sunflower', 'peashooter', 'wallnut', 'snowpea', 'coconut', 'cherry'],
+    finalWaveAt: 112,
+    spawns: [
+      ...group(14, 0, 'normal', [2]),
+      ...group(28, 3.5, 'swimring', [0, 4]),
+      ...group(46, 4, 'imp', [1, 3, 2]),
+      ...group(64, 3, 'bucket', [0, 2, 4]),
+      ...group(84, 4, 'swimring', [3, 1, 2]),
+      ...group(112, 1.8, 'bucket', [0, 2, 4, 1, 3]),
+    ],
+  },
+  {
+    id: 13,
+    name: '青苹果',
+    subtitle: '白天 · 你发现的苹果树',
+    hint: '是你先发现了路边的苹果树。我摘了一个青苹果递给你，你拿在手里把玩，没吃。仙人掌和椰子树是新伙伴，双发射手叠火力，樱桃炸弹留给铁桶群。',
+    message: '那颗青苹果你一直拿在手里，笑得很开心。',
+    story: '路边有一棵苹果树，是你先发现的。我踮起脚尖摘了一个青苹果递给你。你拿在手里把玩，转来转去。那一刻我觉得，你比什么礼物都珍贵。',
+    storyTheme: 'green',
+    night: false,
+    startSun: 200,
+    sunInterval: 6,
+    plants: ['sunflower', 'peashooter', 'wallnut', 'snowpea', 'cactus', 'coconut', 'repeater'],
+    finalWaveAt: 115,
+    spawns: [
+      ...group(12, 2, 'normal', [2, 0]),
+      ...group(28, 3, 'swimring', [4, 1, 3]),
+      ...group(46, 3.5, 'imp', [0, 2, 4]),
+      ...group(64, 3, 'bucket', [1, 3]),
+      ...group(82, 3, 'swimring', [0, 2, 4, 1]),
+      ...group(100, 5, 'brute', [2]),
+      ...group(115, 2, 'bucket', [0, 2, 4, 1, 3]),
+    ],
+  },
+  {
+    id: 14,
+    name: '旋转木马',
+    subtitle: '白天 · 方特游乐园',
+    hint: '全植物解锁！阵型要稳，仙人掌和椰子树加入战场。就像旋转木马一圈一圈，幸福也要稳稳地转下去。',
+    message: '旋转木马转了一圈又一圈，就像我想对灿灿说的：再来一圈，再陪你一圈。',
+    story: '方特游乐园里，你拉着我坐旋转木马。音乐响起来，木马一圈一圈地转，你笑得很开心，像个孩子。我在旁边看着，觉得这辈子最幸运的事就是遇见你。',
+    storyTheme: 'candy',
+    night: false,
+    startSun: 225,
+    sunInterval: 5.5,
+    plants: ['sunflower', 'peashooter', 'wallnut', 'snowpea', 'cactus', 'coconut', 'repeater', 'cherry'],
+    finalWaveAt: 120,
+    spawns: [
+      ...group(12, 2, 'normal', [2, 0, 4]),
+      ...group(28, 2.5, 'swimring', [1, 3, 2]),
+      ...group(46, 3, 'imp', [0, 2, 4, 1]),
+      ...group(64, 3, 'bucket', [3, 0, 2]),
+      ...group(82, 2.5, 'swimring', [4, 1, 3, 2, 0]),
+      ...group(100, 4, 'brute', [2, 0]),
+      ...group(120, 1.8, 'brute', [1, 3]),
+      ...group(123, 2, 'bucket', [0, 2, 4, 1, 3]),
+    ],
+  },
+  {
+    id: 15,
+    name: '过山车',
+    subtitle: '夜晚 · 嘴硬但腿软',
+    hint: '终极挑战！全部僵尸倾巢而出，包括套着泳圈的沙滩僵尸。就像坐过山车——心里怕得要死，但嘴上说着"还行"。勇气的秘诀就是：你在旁边。',
+    message: '过山车倒挂的时候，魂都快飞了，但死撑着说了句"不怕"。怕归怕，和你一起，什么都敢。',
+    story: '过山车倒挂的时候，我的手心全是汗，心里怕得要死，但嘴上说着"不怕不怕"，但是冲下去的那一刻，脑子一片空白，只听见风在耳边呼啸。怕归怕，和你一起，什么都敢，请再来一次！',
+    storyHighlight: '这趟旅程不完美，但每一刻都真实。灿灿，下一站，去哪里？',
+    storyTheme: 'fire',
+    night: true,
+    startSun: 275,
+    sunInterval: 0,
+    plants: ['sunflower', 'peashooter', 'wallnut', 'snowpea', 'cactus', 'coconut', 'repeater', 'cherry'],
+    finalWaveAt: 135,
+    spawns: [
+      ...group(12, 2, 'normal', [2, 0, 4, 1, 3]),
+      ...group(28, 2.5, 'swimring', [0, 2, 4]),
+      ...group(44, 3, 'imp', [1, 3, 2, 0]),
+      ...group(60, 3, 'bucket', [4, 1, 3]),
+      ...group(78, 2.5, 'brute', [2, 0]),
+      ...group(96, 2.5, 'swimring', [4, 1, 3, 2, 0]),
+      ...group(112, 2, 'bucket', [0, 2, 4]),
+      ...group(125, 1.5, 'brute', [1, 3]),
+      ...group(128, 1.5, 'imp', [0, 2, 4, 1, 3]),
+      ...group(135, 1.5, 'brute', [2, 0, 4, 1, 3]),
     ],
   },
 ]

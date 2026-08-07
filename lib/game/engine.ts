@@ -235,6 +235,7 @@ export function step(g: GameState, dt: number) {
           ((p.col + 0.5) / COLS) * 100 + (Math.random() * 6 - 3),
           ((p.row + 0.4) / ROWS) * 100,
           ((p.row + 0.75) / ROWS) * 100,
+          def.sunValue ?? 25,
         )
       }
     } else if (def.kind === 'shooter') {

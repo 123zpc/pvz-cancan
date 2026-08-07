@@ -1,10 +1,13 @@
 'use client'
 
 import { ArrowLeft, Lock, Trophy } from 'lucide-react'
+import { useEffect } from 'react'
 import { MATCH3_LEVELS, TILE_TYPES, type Match3Level } from '@/lib/game/match3'
 import { cn } from '@/lib/utils'
 import { PlantSprite, ZombieSprite } from './sprites'
 import { LevelSelectHeader } from './level-select-header'
+import { audio } from '@/lib/game/audio'
+import { MusicToggle } from './music-toggle'
 
 interface Match3SelectProps {
   unlocked: number
@@ -14,15 +17,23 @@ interface Match3SelectProps {
 }
 
 export function Match3Select({ unlocked, cleared, onStart, onBack }: Match3SelectProps) {
+  useEffect(() => {
+    audio.startMusic('menu')
+    return () => { audio.stopMusic() }
+  }, [])
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
-      <button
-        onClick={onBack}
-        className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        返回菜单
-      </button>
+      <div className="mb-6 flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" />
+          返回菜单
+        </button>
+        <MusicToggle />
+      </div>
 
       <LevelSelectHeader
         unlocked={unlocked}

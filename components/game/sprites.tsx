@@ -175,6 +175,73 @@ function CherryBomb({ className }: SpriteProps) {
   )
 }
 
+function Cactus({ className }: SpriteProps) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
+      <g stroke={INK} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+        {/* 地面小沙丘 */}
+        <ellipse cx="50" cy="90" rx="22" ry="6" fill="#e8c97a" />
+        {/* 主干 */}
+        <rect x="38" y="40" width="22" height="52" rx="11" fill="#5dbb4a" />
+        <ellipse cx="49" cy="45" rx="9" ry="5" fill="#7ed957" stroke="none" transform="rotate(-12 49 45)" />
+        {/* 左臂 */}
+        <path d="M38 60 L18 60 C14 60 14 50 18 50 L26 50 L26 40 L38 40" fill="#5dbb4a" />
+        <ellipse cx="22" cy="52" rx="5" ry="3.5" fill="#7ed957" stroke="none" transform="rotate(-12 22 52)" />
+        {/* 右臂 */}
+        <path d="M60 60 L80 60 C84 60 84 50 80 50 L72 50 L72 40 L60 40" fill="#5dbb4a" />
+        <ellipse cx="76" cy="52" rx="5" ry="3.5" fill="#7ed957" stroke="none" transform="rotate(-12 76 52)" />
+        {/* 小刺 */}
+        {[[44,46],[48,44],[52,44],[56,46],[44,50],[56,50],[44,54],[56,54],[44,58],[56,58],[44,62],[56,62],[44,66],[56,66],[48,70],[52,70]].map(([cx,cy], i) => (
+          <line key={i} x1={cx} y1={cy} x2={cx + (cx < 50 ? -3 : 3)} y2={cy - 3} stroke="#c8e6a0" strokeWidth="2" />
+        ))}
+        {/* 头顶小花 */}
+        <circle cx="49" cy="34" r="6" fill="#ffdb4d" />
+        {[0,72,144,216,288].map((deg) => (
+          <ellipse key={deg} cx="49" cy="26" rx="4" ry="7" fill="#ffe680" transform={`rotate(${deg} 49 34)`} />
+        ))}
+        {/* 脸 */}
+        <BigEyes cx1={42} cx2={56} cy={48} r={4.5} />
+        <Blush cx1={34} cx2={64} cy={56} rx={3.5} />
+        <path d="M44 56 Q49 61 54 56" stroke={INK} strokeWidth="2.4" fill="none" />
+      </g>
+    </svg>
+  )
+}
+
+function CoconutTree({ className }: SpriteProps) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
+      <g stroke={INK} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+        {/* 树干 */}
+        <path d="M48 95 C47 70 49 50 50 30" stroke="#c4995a" strokeWidth="12" fill="none" />
+        <path d="M48 95 C47 70 49 50 50 30" stroke="#d4b07a" strokeWidth="6" fill="none" opacity="0.5" />
+        {/* 树干纹理 */}
+        {[90,80,70,60,50,40].map((y, i) => (
+          <path key={i} d={`M44 ${y} Q49 ${y - 2} 54 ${y}`} stroke="#8a6328" strokeWidth="2" fill="none" opacity="0.4" />
+        ))}
+        {/* 叶子 */}
+        {[-30, 30, 0].map((rot) => (
+          <path key={rot} d="M50 30 C30 10 10 15 5 30 C10 38 30 40 50 30" fill="#4da638" transform={`rotate(${rot} 50 30)`} />
+        ))}
+        {[-30, 30, 0].map((rot) => (
+          <path key={`l2-${rot}`} d="M50 30 C38 18 25 22 20 32 C25 36 38 34 50 30" fill="#6ed957" stroke="none" transform={`rotate(${rot} 50 30)`} />
+        ))}
+        {/* 椰子 */}
+        <circle cx="42" cy="42" r="7" fill="#8b5e3c" />
+        <ellipse cx="40" cy="39" rx="3" ry="2.5" fill="#a47a5a" stroke="none" transform="rotate(-20 40 39)" />
+        <circle cx="58" cy="44" r="6.5" fill="#8b5e3c" />
+        <ellipse cx="56" cy="41" rx="2.8" ry="2.3" fill="#a47a5a" stroke="none" transform="rotate(-20 56 41)" />
+        {/* 脸 */}
+        <BigEyes cx1={40} cx2={56} cy={58} r={4.8} />
+        <Blush cx1={31} cx2={65} cy={66} rx={3.8} />
+        <path d="M42 64 Q49 70 55 64" stroke={INK} strokeWidth="2.6" fill="none" />
+        {/* 地面小沙丘 */}
+        <ellipse cx="50" cy="93" rx="24" ry="6" fill="#e8c97a" />
+      </g>
+    </svg>
+  )
+}
+
 export function PlantSprite({ id, className }: { id: PlantId; className?: string }) {
   switch (id) {
     case 'sunflower':
@@ -189,6 +256,10 @@ export function PlantSprite({ id, className }: { id: PlantId; className?: string
       return <Wallnut className={className} />
     case 'cherry':
       return <CherryBomb className={className} />
+    case 'cactus':
+      return <Cactus className={className} />
+    case 'coconut':
+      return <CoconutTree className={className} />
   }
 }
 
@@ -241,6 +312,15 @@ export function ZombieSprite({ id, className }: { id: ZombieId; className?: stri
             <>
               <path d="M31 16 C31 6 69 6 69 16 C58 20 42 20 31 16 Z" fill="#a3565b" />
               <path d="M38 9 C36 12 35 14 35 16" stroke="#c98287" strokeWidth="4" fill="none" />
+            </>
+          )}
+          {/* 泳圈（沙滩僵尸） */}
+          {id === 'swimring' && (
+            <>
+              <ellipse cx="50" cy="62" rx="18" ry="8" fill="none" stroke="#ff6b6b" strokeWidth="6" />
+              <ellipse cx="50" cy="62" rx="18" ry="8" fill="none" stroke="#ff9999" strokeWidth="3" />
+              <path d="M38 58 Q40 54 44 54" stroke="#ffcccc" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+              <path d="M56 54 Q60 54 62 58" stroke="#ffcccc" strokeWidth="2.5" fill="none" strokeLinecap="round" />
             </>
           )}
         </g>

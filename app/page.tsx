@@ -10,6 +10,8 @@ import { LevelSelect } from '@/components/game/level-select'
 import { MainMenu } from '@/components/game/main-menu'
 import { Match3 } from '@/components/game/match3'
 import { Match3Select } from '@/components/game/match3-select'
+import { MusicToggle } from '@/components/game/music-toggle'
+import { audio } from '@/lib/game/audio'
 import {
   ADMIN_USER_ID,
   clearAuth,
@@ -322,9 +324,9 @@ export default function Page() {
   )
 }
 
-const STORY_CN_NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+const STORY_CN_NUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五']
 
-/** 故事章节配色：与 data.ts 的 storyTheme 对应，10 种可爱卡通配色 */
+/** 故事章节配色：与 data.ts 的 storyTheme 对应，15 种可爱卡通配色 */
 const STORY_THEME_CLS: Record<string, { box: string; title: string; highlight: string }> = {
   sunny: { box: 'bg-amber-50 border-2 border-amber-200', title: 'text-amber-600', highlight: 'text-amber-600' },
   rose: { box: 'bg-rose-50 border-2 border-rose-200', title: 'text-rose-500', highlight: 'text-rose-500' },
@@ -336,17 +338,30 @@ const STORY_THEME_CLS: Record<string, { box: string; title: string; highlight: s
   milk: { box: 'bg-yellow-50 border-2 border-yellow-200', title: 'text-yellow-700', highlight: 'text-yellow-700' },
   star: { box: 'bg-indigo-50 border-2 border-indigo-200', title: 'text-indigo-500', highlight: 'text-indigo-500' },
   gold: { box: 'bg-pink-50 border-2 border-pink-200', title: 'text-pink-600', highlight: 'text-pink-600' },
+  ocean: { box: 'bg-cyan-50 border-2 border-cyan-200', title: 'text-cyan-600', highlight: 'text-cyan-600' },
+  wheel: { box: 'bg-purple-50 border-2 border-purple-200', title: 'text-purple-500', highlight: 'text-purple-500' },
+  green: { box: 'bg-lime-50 border-2 border-lime-200', title: 'text-lime-600', highlight: 'text-lime-600' },
+  candy: { box: 'bg-fuchsia-50 border-2 border-fuchsia-200', title: 'text-fuchsia-500', highlight: 'text-fuchsia-500' },
+  fire: { box: 'bg-red-50 border-2 border-orange-200', title: 'text-orange-500', highlight: 'text-orange-500' },
 }
 
 function StoryView({ onBack, onPlay }: { onBack: () => void; onPlay: () => void }) {
+  useEffect(() => {
+    audio.startMusic('menu')
+    return () => { audio.stopMusic() }
+  }, [])
+
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-12">
-      <button
-        onClick={onBack}
-        className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5"
-      >
-        ← 返回菜单
-      </button>
+      <div className="mb-6 flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5"
+        >
+          ← 返回菜单
+        </button>
+        <MusicToggle />
+      </div>
 
       <section className="rounded-3xl border-4 border-primary/25 bg-card p-6 shadow-lg sm:p-10">
         <h1 className="font-display text-3xl font-extrabold text-primary sm:text-4xl">守护草坪的故事</h1>
@@ -383,14 +398,22 @@ function StoryView({ onBack, onPlay }: { onBack: () => void; onPlay: () => void 
 }
 
 function AboutView({ onBack }: { onBack: () => void }) {
+  useEffect(() => {
+    audio.startMusic('menu')
+    return () => { audio.stopMusic() }
+  }, [])
+
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-12">
-      <button
-        onClick={onBack}
-        className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5"
-      >
-        ← 返回菜单
-      </button>
+      <div className="mb-6 flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5"
+        >
+          ← 返回菜单
+        </button>
+        <MusicToggle />
+      </div>
 
       <section className="rounded-3xl border-4 border-primary/25 bg-card p-6 text-center shadow-lg sm:p-10">
         <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full bg-rose-50">
