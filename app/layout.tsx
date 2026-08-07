@@ -1,5 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
+import { SwRegister } from '@/components/sw-register'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className="bg-background" suppressHydrationWarning>
       <body className="antialiased font-sans">
+        <SwRegister />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
