@@ -68,6 +68,28 @@
   --sun: oklch(0.87 0.16 88);
 }
 
+/* ── 七夕限定主题：玫瑰色调换装（棋盘 lawn/soil/sun 不变，保证游戏可读性） ── */
+html[data-qixi='on'] {
+  --background: oklch(0.965 0.022 350);
+  --foreground: oklch(0.32 0.06 355);
+  --card: oklch(0.995 0.007 350);
+  --card-foreground: oklch(0.32 0.06 355);
+  --popover: oklch(0.995 0.007 350);
+  --popover-foreground: oklch(0.32 0.06 355);
+  --primary: oklch(0.64 0.17 353);
+  --primary-foreground: oklch(0.99 0.01 350);
+  --secondary: oklch(0.94 0.028 350);
+  --secondary-foreground: oklch(0.35 0.07 355);
+  --muted: oklch(0.94 0.022 350);
+  --muted-foreground: oklch(0.51 0.045 353);
+  --border: oklch(0.89 0.032 350);
+  --input: oklch(0.89 0.032 350);
+  --ring: oklch(0.64 0.17 353);
+}
+html[data-qixi='on'] body {
+  transition: background-color 0.6s ease;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -397,4 +419,117 @@
 }
 .m3-rank-flash {
   animation: m3-rank-flash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ── 七夕限定：星空鹊桥装饰 ── */
+
+/* 星星闪烁 */
+@keyframes qixi-twinkle {
+  0%, 100% { opacity: var(--tw-min, 0.25); transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+.qixi-twinkle {
+  animation: qixi-twinkle var(--tw-dur, 2.6s) ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+/* 牛郎星 / 织女星呼吸光晕 */
+@keyframes qixi-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px oklch(0.85 0.15 90 / 0.7)); opacity: 0.85; }
+  50% { filter: drop-shadow(0 0 9px oklch(0.85 0.15 90 / 0.95)); opacity: 1; }
+}
+.qixi-glow {
+  animation: qixi-glow 3.2s ease-in-out infinite;
+}
+
+/* 流星：周期内短暂划过（其余时间隐匿，营造低频惊喜感） */
+@keyframes qixi-meteor {
+  0% { transform: translate(0, 0) rotate(-32deg) scaleX(0.2); opacity: 0; }
+  2% { opacity: 0.95; }
+  6% { transform: translate(calc(var(--mx, -240px) * 0.5), calc(var(--my, 150px) * 0.5)) rotate(-32deg) scaleX(0.85); opacity: 0.95; }
+  13% { transform: translate(var(--mx, -240px), var(--my, 150px)) rotate(-32deg) scaleX(1); opacity: 0; }
+  100% { transform: translate(var(--mx, -240px), var(--my, 150px)) rotate(-32deg) scaleX(1); opacity: 0; }
+}
+.qixi-meteor {
+  animation: qixi-meteor var(--m-dur, 9s) ease-out infinite;
+  animation-delay: var(--m-delay, 0s);
+  will-change: transform, opacity;
+}
+
+/* 七夕徽章金色流光 */
+@keyframes qixi-shimmer {
+  0% { background-position: -140% 0; }
+  100% { background-position: 240% 0; }
+}
+.qixi-shimmer {
+  background-image: linear-gradient(
+    110deg,
+    oklch(0.82 0.16 88) 0%,
+    oklch(0.92 0.13 95) 38%,
+    oklch(0.99 0.05 95) 50%,
+    oklch(0.92 0.13 95) 62%,
+    oklch(0.82 0.16 88) 100%
+  );
+  background-size: 200% 100%;
+  animation: qixi-shimmer 3.4s linear infinite;
+}
+
+/* 彩蛋词卡浮现 */
+@keyframes qixi-quote {
+  0% { transform: translate(-50%, -46%) scale(0.72); opacity: 0; }
+  14% { transform: translate(-50%, -52%) scale(1.04); opacity: 1; }
+  22% { transform: translate(-50%, -50%) scale(1); }
+  80% { transform: translate(-50%, -58%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -74%) scale(0.94); opacity: 0; }
+}
+.qixi-quote {
+  animation: qixi-quote 2.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* 彩蛋点击：心与星屑径向飞散 */
+@keyframes qixi-burst {
+  0% { transform: translate(-50%, -50%) translate(0, 0) scale(0.4); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translate(var(--dx, 0px), var(--dy, -60px)) scale(1); opacity: 0; }
+}
+.qixi-burst {
+  animation: qixi-burst 0.9s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* 花瓣 / 星屑上浮（带左右摇摆） */
+@keyframes qixi-petal {
+  0% { transform: translateY(0) translateX(0) rotate(-8deg); opacity: 0; }
+  12% { opacity: var(--p-op, 0.55); }
+  50% { transform: translateY(-55dvh) translateX(var(--p-sway, 18px)) rotate(10deg); }
+  88% { opacity: var(--p-op, 0.55); }
+  100% { transform: translateY(-112dvh) translateX(calc(var(--p-sway, 18px) * -0.6)) rotate(-6deg); opacity: 0; }
+}
+.qixi-petal {
+  animation: qixi-petal var(--p-dur, 11s) linear infinite;
+  animation-delay: var(--p-delay, 0s);
+  will-change: transform, opacity;
+}
+
+/* 一只喜鹊缓缓横渡屏幕（低频点缀） */
+@keyframes qixi-fly {
+  0% { transform: translate(-8vw, 0) scaleX(1); }
+  25% { transform: translate(24vw, -14px) scaleX(1); }
+  50% { transform: translate(52vw, 6px) scaleX(1); }
+  75% { transform: translate(80vw, -10px) scaleX(1); }
+  100% { transform: translate(112vw, 0) scaleX(1); }
+}
+.qixi-fly {
+  animation: qixi-fly var(--f-dur, 26s) linear infinite;
+  animation-delay: var(--f-delay, 0s);
+  will-change: transform;
+}
+
+/* 问候卡入场 */
+@keyframes qixi-card-in {
+  0% { transform: translateY(28px) scale(0.92); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.qixi-card-in {
+  animation: qixi-card-in 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }

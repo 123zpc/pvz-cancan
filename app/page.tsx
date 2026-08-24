@@ -11,10 +11,12 @@ import { MainMenu } from '@/components/game/main-menu'
 import { Match3 } from '@/components/game/match3'
 import { Match3Select } from '@/components/game/match3-select'
 import { MusicToggle } from '@/components/game/music-toggle'
+import { QixiDecor, QixiGreeting } from '@/components/game/qixi-theme'
 import { audio } from '@/lib/game/audio'
 import {
   ADMIN_USER_ID,
   clearAuth,
+  getFestivalConfig,
   getProgress,
   getToken,
   getUserId,
@@ -28,6 +30,19 @@ type View = 'menu' | 'games' | 'levels' | 'story' | 'about' | 'battle' | 'match3
 
 /** 本地兜底进度：后端不可用时使用，保证离线可玩。包含主游戏 + 消消乐 */
 const STORAGE_KEY = 'pvz-cancan-progress-fallback'
+
+/** 七夕主题本地缓存：后端不可达时沿用上次状态（默认开启） */
+const QIXI_CACHE_KEY = 'pvz-qixi-cache'
+
+function loadQixiCache(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const v = localStorage.getItem(QIXI_CACHE_KEY)
+    return v === null ? true : v === '1'
+  } catch {
+    return true
+  }
+}
 
 interface FullProgress {
   unlocked: number
@@ -77,13 +92,40 @@ export default function Page() {
   const [levelBestTimes, setLevelBestTimes] = useState<Record<number, number>>({})
   /** 消消乐每关最佳通关用时 */
   const [m3LevelBestTimes, setM3LevelBestTimes] = useState<Record<number, number>>({})
+  /** 七夕限定主题（管理后台可开关） */
+  const [qixiOn, setQixiOn] = useState<boolean>(loadQixiCache)
 
   const isAdmin = userId === ADMIN_USER_ID
+
+  /** 同步七夕主题：写状态 + 本地缓存 + html 属性 */
+  const applyQixi = useCallback((on: boolean) => {
+    setQixiOn(on)
+    try {
+      localStorage.setItem(QIXI_CACHE_KEY, on ? '1' : '0')
+    } catch {
+      /* 忽略 */
+    }
+  }, [])
+
+  const fetchFestival = useCallback(async () => {
+    try {
+      const c = await getFestivalConfig()
+      applyQixi(c.qixi)
+    } catch {
+      // 后端不可达：沿用本地缓存
+    }
+  }, [applyQixi])
+
+  // 主题属性挂到 <html>，驱动 CSS 变量换装
+  useEffect(() => {
+    document.documentElement.dataset.qixi = qixiOn ? 'on' : 'off'
+  }, [qixiOn])
 
   // 启动时：检查 token 是否仍有效，并从后端拉取进度
   useEffect(() => {
     const token = getToken()
     if (!token) return // 未登录
+    fetchFestival()
     // 有 token：尝试从后端拉进度，失败则清登录态
     getProgress()
       .then((p) => {
@@ -103,7 +145,7 @@ export default function Page() {
         // token 失效或后端不可达：清除登录态，回登录页
         clearAuth()
       })
-  }, [])
+  }, [fetchFestival])
 
   // 登录：调用后端 /api/login
   const handlePassword = async () => {
@@ -112,7 +154,8 @@ export default function Page() {
       const result = await apiLogin(pwInput)
       setUserName(result.name)
       setUserId(result.userId)
-      // 登录后拉取云端进度
+      // 登录后拉取云端进度与节日主题配置
+      fetchFestival()
       try {
         const p = await getProgress()
         setUnlocked(Math.max(1, Math.min(LEVELS.length, p.unlocked ?? 1)))
@@ -201,9 +244,14 @@ export default function Page() {
     setMatch3Level(null)
   }, [])
 
+  // 七夕装饰：仅非游戏界面（battle/match3 保持棋盘清爽）
+  const showQixiDecor = qixiOn && view !== 'battle' && view !== 'match3'
+
   // 密码门
   if (!authed) {
     return (
+      <>
+      {showQixiDecor && <QixiDecor />}
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gradient-to-b from-lawn/30 via-background to-lawn/20 p-6">
         <div className="w-full max-w-xs text-center">
           <div className="mb-6 text-5xl">🌻</div>
@@ -231,22 +279,26 @@ export default function Page() {
           </button>
         </div>
       </div>
+      </>
     )
   }
 
   if (view === 'games') {
     return (
-      <GamesHub
-        onBack={() => setView('menu')}
-        onSelectPvZ={() => setView('levels')}
-        onSelectMatch3={() => setView('match3-select')}
-        pvzUnlocked={unlocked}
-        pvzCleared={cleared}
-        pvzTotal={LEVELS.length}
-        m3Unlocked={m3Unlocked}
-        m3Cleared={m3Cleared}
-        m3Total={MATCH3_LEVELS.length}
-      />
+      <>
+        {showQixiDecor && <QixiDecor />}
+        <GamesHub
+          onBack={() => setView('menu')}
+          onSelectPvZ={() => setView('levels')}
+          onSelectMatch3={() => setView('match3-select')}
+          pvzUnlocked={unlocked}
+          pvzCleared={cleared}
+          pvzTotal={LEVELS.length}
+          m3Unlocked={m3Unlocked}
+          m3Cleared={m3Cleared}
+          m3Total={MATCH3_LEVELS.length}
+        />
+      </>
     )
   }
 
@@ -274,53 +326,79 @@ export default function Page() {
 
   if (view === 'match3-select') {
     return (
-      <Match3Select
-        unlocked={m3Unlocked}
-        cleared={m3Cleared}
-        onStart={(l) => {
-          setMatch3Level(l)
-          setView('match3')
-        }}
-        onBack={() => setView('menu')}
-      />
+      <>
+        {showQixiDecor && <QixiDecor />}
+        <Match3Select
+          unlocked={m3Unlocked}
+          cleared={m3Cleared}
+          onStart={(l) => {
+            setMatch3Level(l)
+            setView('match3')
+          }}
+          onBack={() => setView('menu')}
+        />
+      </>
     )
   }
 
   if (view === 'admin' && isAdmin) {
-    return <AdminPanel onBack={() => setView('menu')} />
+    return (
+      <>
+        {showQixiDecor && <QixiDecor />}
+        <AdminPanel onBack={() => setView('menu')} onFestivalChanged={fetchFestival} />
+      </>
+    )
   }
 
   if (view === 'levels') {
     return (
-      <LevelSelect
-        unlocked={unlocked}
-        cleared={cleared}
-        onStart={(l) => {
-          setLevel(l)
-          setView('battle')
-        }}
-        onBack={() => setView('menu')}
-      />
+      <>
+        {showQixiDecor && <QixiDecor />}
+        <LevelSelect
+          unlocked={unlocked}
+          cleared={cleared}
+          onStart={(l) => {
+            setLevel(l)
+            setView('battle')
+          }}
+          onBack={() => setView('menu')}
+        />
+      </>
     )
   }
 
   if (view === 'story') {
-    return <StoryView onBack={() => setView('menu')} onPlay={() => setView('levels')} />
+    return (
+      <>
+        {showQixiDecor && <QixiDecor />}
+        <StoryView onBack={() => setView('menu')} onPlay={() => setView('levels')} />
+      </>
+    )
   }
 
   if (view === 'about') {
-    return <AboutView onBack={() => setView('menu')} />
+    return (
+      <>
+        {showQixiDecor && <QixiDecor />}
+        <AboutView onBack={() => setView('menu')} />
+      </>
+    )
   }
 
   return (
-    <MainMenu
-      onPlay={() => setView('games')}
-      onStory={() => setView('story')}
-      onAbout={() => setView('about')}
-      onAdmin={isAdmin ? () => setView('admin') : undefined}
-      userName={userName}
-      onLogout={handleLogout}
-    />
+    <>
+      {showQixiDecor && <QixiDecor />}
+      {qixiOn && <QixiGreeting userName={userName} />}
+      <MainMenu
+        onPlay={() => setView('games')}
+        onStory={() => setView('story')}
+        onAbout={() => setView('about')}
+        onAdmin={isAdmin ? () => setView('admin') : undefined}
+        userName={userName}
+        onLogout={handleLogout}
+        qixi={qixiOn}
+      />
+    </>
   )
 }
 

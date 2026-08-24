@@ -69,6 +69,12 @@ export interface AdminUserSummary {
 
 export type AdminGame = 'pvz' | 'm3'
 
+/** 节日主题配置 */
+export interface FestivalConfig {
+  /** 七夕限定主题（星空鹊桥装饰 + 彩蛋），管理后台可开关 */
+  qixi: boolean
+}
+
 const TOKEN_KEY = 'pvz-cancan-token'
 const NAME_KEY = 'pvz-cancan-name'
 const USERID_KEY = 'pvz-cancan-userid'
@@ -174,6 +180,11 @@ export async function submitEndlessScore(score: number): Promise<EndlessLeaderbo
   })
 }
 
+/** 读取节日主题配置（七夕主题开关）。 */
+export async function getFestivalConfig(): Promise<FestivalConfig> {
+  return request<FestivalConfig>('/api/config/festival', { auth: true })
+}
+
 /* ── 管理员接口 ── */
 
 /** 列出所有用户进度摘要。 */
@@ -214,6 +225,15 @@ export async function adminOverwriteUser(userId: string, progress: Progress): Pr
   await request<{ success: boolean }>(`/api/admin/users/${encodeURIComponent(userId)}`, {
     method: 'POST',
     body: JSON.stringify(progress),
+    auth: true,
+  })
+}
+
+/** 管理员切换节日主题（七夕）开关。 */
+export async function adminSetFestivalConfig(qixi: boolean): Promise<FestivalConfig> {
+  return request<FestivalConfig>('/api/admin/config/festival', {
+    method: 'POST',
+    body: JSON.stringify({ qixi }),
     auth: true,
   })
 }

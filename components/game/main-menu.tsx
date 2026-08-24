@@ -5,6 +5,7 @@ import { BookHeart, Gamepad2, Gift, LogOut, ShieldCheck } from 'lucide-react'
 import { PlantSprite, SunSprite, ZombieSprite } from './sprites'
 import { audio } from '@/lib/game/audio'
 import { MusicToggle } from './music-toggle'
+import { QixiBadge } from './qixi-theme'
 
 interface MainMenuProps {
   onPlay: () => void
@@ -13,9 +14,11 @@ interface MainMenuProps {
   onAdmin?: () => void
   userName?: string
   onLogout?: () => void
+  /** 七夕限定主题开启时展示徽章 */
+  qixi?: boolean
 }
 
-export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout }: MainMenuProps) {
+export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout, qixi }: MainMenuProps) {
   useEffect(() => {
     audio.startMusic('menu')
     return () => {
@@ -59,9 +62,12 @@ export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout
         <h1 className="font-display text-5xl font-extrabold tracking-tight text-balance text-primary drop-shadow-md sm:text-7xl">
           植物大战僵尸
         </h1>
-        <p className="mt-2 font-display text-lg font-bold text-rose-400 sm:text-2xl">
-          灿灿专属版
-        </p>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+          <p className="font-display text-lg font-bold text-rose-400 sm:text-2xl">
+            灿灿专属版
+          </p>
+          {qixi && <QixiBadge />}
+        </div>
         <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
           种下向日葵，收集阳光，守护属于我们的草坪。
         </p>

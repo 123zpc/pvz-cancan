@@ -41,6 +41,7 @@ public class LocalBackupService {
   private static final String SNAPSHOT_PREFIX = "pvz-data-";
   private static final String CUSTOM_USERS_KEY = "users:custom";
   private static final String LEADERBOARD_KEY = "match3:endless:scores";
+  private static final String FESTIVAL_KEY = "config:festival";
   private static final List<String> BUILTIN_USER_IDS = List.of("002523", "020510");
 
   private final RedisTemplate<String, Object> redisTemplate;
@@ -113,6 +114,7 @@ public class LocalBackupService {
       addEntry(entries, "progress:" + userId, redisTemplate.opsForValue().get("progress:" + userId));
     }
     addEntry(entries, LEADERBOARD_KEY, redisTemplate.opsForValue().get(LEADERBOARD_KEY));
+    addEntry(entries, FESTIVAL_KEY, redisTemplate.opsForValue().get(FESTIVAL_KEY));
     return new Snapshot(1, entries);
   }
 

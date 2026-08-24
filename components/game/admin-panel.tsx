@@ -9,6 +9,7 @@ import {
   Pencil,
   RefreshCw,
   Save,
+  Sparkles,
   Trophy,
   X,
 } from 'lucide-react'
@@ -20,6 +21,8 @@ import {
   adminGetUser,
   adminListUsers,
   adminOverwriteUser,
+  adminSetFestivalConfig,
+  getFestivalConfig,
   type AdminGame,
   type AdminUserSummary,
   type Progress,
@@ -29,6 +32,8 @@ import { cn } from '@/lib/utils'
 
 interface AdminPanelProps {
   onBack: () => void
+  /** 七夕主题开关变化后回调（让全局立即换装） */
+  onFestivalChanged?: () => void
 }
 
 /** 秒数格式化为 mm:ss */
@@ -54,7 +59,7 @@ function fmtDate(ms?: number): string {
   }
 }
 
-export function AdminPanel({ onBack }: AdminPanelProps) {
+export function AdminPanel({ onBack, onFestivalChanged }: AdminPanelProps) {
   const [users, setUsers] = useState<AdminUserSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -113,6 +118,8 @@ export function AdminPanel({ onBack }: AdminPanelProps) {
       </section>
 
       <DataManagement users={users} onChanged={refresh} />
+
+      <FestivalSection onChanged={onFestivalChanged} />
 
       {error && (
         <div className="mb-4 rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-sm text-red-600">
@@ -287,6 +294,79 @@ function DataManagement({ users, onChanged }: { users: AdminUserSummary[]; onCha
         {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
       </div>
     </details>
+  )
+}
+
+/* ── 节日主题（七夕限定）开关 ── */
+function FestivalSection({ onChanged }: { onChanged?: () => void }) {
+  const [qixi, setQixi] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    getFestivalConfig()
+      .then((c) => {
+        if (!cancelled) setQixi(c.qixi)
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : '读取节日配置失败')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const toggle = async () => {
+    if (qixi === null || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      const c = await adminSetFestivalConfig(!qixi)
+      setQixi(c.qixi)
+      onChanged?.()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '切换失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="mb-5 rounded-2xl border-2 border-rose-200 bg-rose-50/60 p-4">
+      <div className="flex items-center gap-2">
+        <Sparkles className="size-4 text-rose-500" aria-hidden="true" />
+        <p className="font-display text-sm font-extrabold text-rose-600">节日主题 · 七夕限定</p>
+        {/* 开关 */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={qixi === true}
+          aria-label="七夕主题开关"
+          onClick={toggle}
+          disabled={busy || qixi === null}
+          className={cn(
+            'ml-auto relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60',
+            qixi ? 'bg-primary' : 'border-2 border-border bg-secondary',
+          )}
+        >
+          <span
+            className={cn(
+              'absolute top-0.5 size-6 rounded-full bg-white shadow transition-all duration-200',
+              qixi ? 'left-[22px]' : 'left-0.5',
+            )}
+          />
+        </button>
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+        开启后全站换上玫瑰色调，菜单飘起星空鹊桥与流星，点喜鹊有诗词彩蛋，每日首次进入还有七夕祝福卡；关闭则恢复经典草坪风。
+        修改立即生效，其他设备重新进入或刷新后同步。
+      </p>
+      <p className={cn('mt-2 text-xs font-bold', qixi ? 'text-rose-500' : 'text-muted-foreground')}>
+        {qixi === null ? '读取中…' : qixi ? '已开启 · 星河浪漫进行中' : '已关闭 · 经典草坪风'}
+      </p>
+      {error && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
+    </section>
   )
 }
 
