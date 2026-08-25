@@ -125,13 +125,13 @@ const QUOTES = [
   '今夜星如雨，思念落满桥',
 ]
 
-/** 彩蛋流星雨路径 */
+/** 彩蛋流星雨路径（dy = |dx| × tan32° ≈ 0.625，与光条倾角严格一致，头前尾后） */
 const RAIN_METEORS = [
-  { top: '10%', right: '12%', dx: '-46vw', dy: '34vh', delay: 0 },
-  { top: '4%', right: '34%', dx: '-38vw', dy: '30vh', delay: 0.14 },
-  { top: '16%', right: '4%', dx: '-42vw', dy: '32vh', delay: 0.28 },
-  { top: '6%', right: '22%', dx: '-44vw', dy: '33vh', delay: 0.42 },
-  { top: '13%', right: '42%', dx: '-36vw', dy: '28vh', delay: 0.55 },
+  { top: '10%', right: '12%', dx: '-46vw', dy: '28.8vw', delay: 0 },
+  { top: '4%', right: '34%', dx: '-38vw', dy: '23.8vw', delay: 0.14 },
+  { top: '16%', right: '4%', dx: '-42vw', dy: '26.3vw', delay: 0.28 },
+  { top: '6%', right: '22%', dx: '-44vw', dy: '27.5vw', delay: 0.42 },
+  { top: '13%', right: '42%', dx: '-36vw', dy: '22.5vw', delay: 0.55 },
 ]
 
 /** 彩蛋爆散粒子 */
@@ -153,21 +153,18 @@ interface EggFx {
 function EggEffects({ fx }: { fx: EggFx }) {
   return (
     <div className="pointer-events-none fixed inset-0 z-[60]" aria-hidden="true">
-      {/* 流星雨 */}
+      {/* 流星雨（一次性整段划过，延迟与角度各异） */}
       {RAIN_METEORS.map((m, i) => (
         <i
           key={`rain-${fx.id}-${i}`}
-          className="qixi-meteor absolute h-[2px] w-28 rounded-full opacity-0"
+          className="qixi-meteor-burst absolute h-[2px] w-28 rounded-full opacity-0"
           style={
             {
               top: m.top,
               right: m.right,
               '--mx': m.dx,
               '--my': m.dy,
-              '--m-dur': '1.1s',
               '--m-delay': `${m.delay}s`,
-              animationIterationCount: 1,
-              background: 'linear-gradient(90deg, oklch(0.99 0.05 95 / 0.95), transparent)',
             } as React.CSSProperties
           }
         />
@@ -282,16 +279,15 @@ export function QixiDecor() {
           )
         })}
 
-        {/* 常驻流星（低频，斜划天幕） */}
+        {/* 常驻流星（低频，斜划天幕；dy = |dx|×tan32°，行程收在天幕内） */}
         <i
           className="qixi-meteor absolute right-[-3%] top-[18%] h-[2px] w-24 rounded-full"
           style={
             {
-              '--mx': '-300px',
-              '--my': '80px',
+              '--mx': '-160px',
+              '--my': '100px',
               '--m-dur': '9s',
               '--m-delay': '2s',
-              background: 'linear-gradient(90deg, oklch(0.99 0.05 95 / 0.9), transparent)',
             } as React.CSSProperties
           }
         />
@@ -299,11 +295,10 @@ export function QixiDecor() {
           className="qixi-meteor absolute right-[22%] top-[8%] h-[2px] w-20 rounded-full"
           style={
             {
-              '--mx': '-260px',
-              '--my': '70px',
+              '--mx': '-140px',
+              '--my': '88px',
               '--m-dur': '11s',
               '--m-delay': '6.5s',
-              background: 'linear-gradient(90deg, oklch(0.99 0.05 95 / 0.75), transparent)',
             } as React.CSSProperties
           }
         />
@@ -474,7 +469,7 @@ export function QixiGreeting({ userName }: { userName?: string }) {
           <p className="mt-4 text-sm leading-relaxed text-[oklch(0.88_0.04_350)]">
             银河迢迢，今夜鹊桥相会。
             <br />
-            愿与{name}在一起的每一天，
+            愿与灿灿在一起的每一天，
             <br />
             都像今夜的星光一样温柔闪亮。
           </p>

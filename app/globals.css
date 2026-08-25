@@ -442,18 +442,38 @@ html[data-qixi='on'] body {
   animation: qixi-glow 3.2s ease-in-out infinite;
 }
 
-/* 流星：周期内短暂划过（其余时间隐匿，营造低频惊喜感） */
+/* 流星：白金亮头拖尾渐变（亮头在左，配合 rotate(-32deg) 后头部朝左下方，飞行时头在前尾在后） */
+.qixi-meteor,
+.qixi-meteor-burst {
+  background: linear-gradient(90deg, oklch(0.99 0.02 95) 0%, oklch(0.97 0.1 95 / 0.95) 15%, oklch(0.92 0.12 95 / 0.5) 45%, transparent 90%);
+  will-change: transform, opacity;
+}
+
+/* 常驻流星：长周期内匀速划过一小段（约 1 秒），其余时间隐匿 */
 @keyframes qixi-meteor {
-  0% { transform: translate(0, 0) rotate(-32deg) scaleX(0.2); opacity: 0; }
-  2% { opacity: 0.95; }
-  6% { transform: translate(calc(var(--mx, -240px) * 0.5), calc(var(--my, 150px) * 0.5)) rotate(-32deg) scaleX(0.85); opacity: 0.95; }
-  13% { transform: translate(var(--mx, -240px), var(--my, 150px)) rotate(-32deg) scaleX(1); opacity: 0; }
+  0% { transform: translate(0, 0) rotate(-32deg) scaleX(0.3); opacity: 0; }
+  2% { opacity: 1; }
+  9% { opacity: 1; }
+  12% { transform: translate(var(--mx, -240px), var(--my, 150px)) rotate(-32deg) scaleX(1); opacity: 0; }
   100% { transform: translate(var(--mx, -240px), var(--my, 150px)) rotate(-32deg) scaleX(1); opacity: 0; }
 }
 .qixi-meteor {
-  animation: qixi-meteor var(--m-dur, 9s) ease-out infinite;
+  animation: qixi-meteor var(--m-dur, 9s) linear infinite;
   animation-delay: var(--m-delay, 0s);
-  will-change: transform, opacity;
+  animation-fill-mode: backwards;
+}
+
+/* 彩蛋流星雨：一次性整段划过，微缓出（入场快、烧尽时渐慢） */
+@keyframes qixi-meteor-burst {
+  0% { transform: translate(0, 0) rotate(-32deg) scaleX(0.3); opacity: 0; }
+  12% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(var(--mx, -240px), var(--my, 150px)) rotate(-32deg) scaleX(1); opacity: 0; }
+}
+.qixi-meteor-burst {
+  animation: qixi-meteor-burst 1.15s cubic-bezier(0.3, 0.5, 0.5, 1) 1;
+  animation-delay: var(--m-delay, 0s);
+  animation-fill-mode: backwards;
 }
 
 /* 七夕徽章金色流光 */
@@ -511,17 +531,18 @@ html[data-qixi='on'] body {
   will-change: transform, opacity;
 }
 
-/* 一只喜鹊缓缓横渡屏幕（低频点缀） */
+/* 一只喜鹊自右向左缓缓横渡屏幕（鸟头朝左，与飞行方向一致） */
 @keyframes qixi-fly {
-  0% { transform: translate(-8vw, 0) scaleX(1); }
-  25% { transform: translate(24vw, -14px) scaleX(1); }
-  50% { transform: translate(52vw, 6px) scaleX(1); }
-  75% { transform: translate(80vw, -10px) scaleX(1); }
-  100% { transform: translate(112vw, 0) scaleX(1); }
+  0% { transform: translate(112vw, 0); }
+  25% { transform: translate(80vw, -14px); }
+  50% { transform: translate(52vw, 6px); }
+  75% { transform: translate(24vw, -10px); }
+  100% { transform: translate(-12vw, 0); }
 }
 .qixi-fly {
   animation: qixi-fly var(--f-dur, 26s) linear infinite;
   animation-delay: var(--f-delay, 0s);
+  animation-fill-mode: backwards;
   will-change: transform;
 }
 
