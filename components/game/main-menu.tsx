@@ -5,7 +5,7 @@ import { BookHeart, Gamepad2, Gift, LogOut, ShieldCheck } from 'lucide-react'
 import { PlantSprite, SunSprite, ZombieSprite } from './sprites'
 import { audio } from '@/lib/game/audio'
 import { MusicToggle } from './music-toggle'
-import { QixiBadge } from './qixi-theme'
+import { QixiBadge, HEART_PATH } from './qixi-theme'
 
 interface MainMenuProps {
   onPlay: () => void
@@ -28,7 +28,8 @@ export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout
 
   return (
     <main className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-center overflow-hidden px-4 py-8">
-      {/* 飘心背景装饰 */}
+      {/* 飘心背景装饰（七夕主题开启时让位给七夕的花瓣星屑，避免双层爱心重叠） */}
+      {!qixi && (
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         {FLOATING_HEARTS.map((h, i) => (
           <svg
@@ -44,10 +45,11 @@ export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout
             viewBox="0 0 24 24"
             fill="currentColor"
           >
-            <path d="M12 21s-6.7-4.3-9.5-8.5C.5 9.5 1.5 6 4.5 5c2-.7 3.8.2 5 1.7C10.7 5.2 12.5 4.3 14.5 5c3 1 4 4.5 2 7.5C18.7 16.7 12 21 12 21z" />
+            <path d={HEART_PATH} />
           </svg>
         ))}
       </div>
+      )}
 
       {/* 主标题区 */}
       <div className="relative z-10 flex flex-col items-center text-center">
@@ -55,7 +57,7 @@ export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout
           <SunSprite className="size-5" />
           <span className="font-display text-sm font-bold text-accent-foreground">献给灿灿</span>
           <svg className="size-4 text-rose-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 21s-6.7-4.3-9.5-8.5C.5 9.5 1.5 6 4.5 5c2-.7 3.8.2 5 1.7C10.7 5.2 12.5 4.3 14.5 5c3 1 4 4.5 2 7.5C18.7 16.7 12 21 12 21z" />
+            <path d={HEART_PATH} />
           </svg>
         </div>
 

@@ -23,11 +23,13 @@ function Star4({ className, style }: { className?: string; style?: React.CSSProp
   )
 }
 
-/** 心形 */
+/** 心形（Material Design 经典轮廓：两瓣对称、凹陷居中，小尺寸下也端正清晰） */
+export const HEART_PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'
+
 function Heart({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} style={style} aria-hidden="true">
-      <path d="M12 21s-6.7-4.3-9.5-8.5C.5 9.5 1.5 6 4.5 5c2-.7 3.8.2 5 1.7C10.7 5.2 12.5 4.3 14.5 5c3 1 4 4.5 2 7.5C18.7 16.7 12 21 12 21z" />
+      <path d={HEART_PATH} />
     </svg>
   )
 }
@@ -219,9 +221,9 @@ export function QixiDecor() {
 
   return (
     <>
-      {/* 星空横幅：银河、鹊桥、双星、流星（置于内容之下，作天幕） */}
+      {/* 星空横幅：银河、鹊桥、双星、流星（天幕罩在页面顶部，不被各页背景遮挡，pointer-events-none 不挡操作） */}
       <div
-        className="pointer-events-none fixed inset-x-0 top-0 z-0 h-32 overflow-hidden"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[6] h-32 overflow-hidden"
         style={{
           background:
             'linear-gradient(to bottom, oklch(0.3 0.1 285 / 0.5), oklch(0.33 0.1 300 / 0.22) 55%, transparent)',
@@ -485,14 +487,14 @@ export function QixiGreeting({ userName }: { userName?: string }) {
               strokeDasharray="1 5"
             />
             <path
-              transform="translate(4 7) scale(0.72)"
+              transform="translate(3 7) scale(0.72)"
               fill="oklch(0.66 0.19 15)"
-              d="M12 21s-6.7-4.3-9.5-8.5C.5 9.5 1.5 6 4.5 5c2-.7 3.8.2 5 1.7C10.7 5.2 12.5 4.3 14.5 5c3 1 4 4.5 2 7.5C18.7 16.7 12 21 12 21z"
+              d={HEART_PATH}
             />
             <path
-              transform="translate(136 5) scale(0.72)"
+              transform="translate(135 7) scale(0.72)"
               fill="oklch(0.66 0.19 15)"
-              d="M12 21s-6.7-4.3-9.5-8.5C.5 9.5 1.5 6 4.5 5c2-.7 3.8.2 5 1.7C10.7 5.2 12.5 4.3 14.5 5c3 1 4 4.5 2 7.5C18.7 16.7 12 21 12 21z"
+              d={HEART_PATH}
             />
           </svg>
 
