@@ -116,20 +116,11 @@ export default function Page() {
     }
   }, [applyQixi])
 
-  // 主题属性挂到 <html>，驱动 CSS 变量换装；同步 iOS 状态栏与地址栏配色，让星空天幕与状态栏融合
+  // 主题属性挂到 <html>，驱动 CSS 变量换装；同步切换 theme-color meta（iOS Safari 状态栏/工具栏背景跟随主题，否则七夕时仍是写死的浅绿、与页面冲突后变灰）
   useEffect(() => {
     document.documentElement.dataset.qixi = qixiOn ? 'on' : 'off'
-    const themeColor = document.querySelector('meta[name="theme-color"]')
-    const statusBar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
-    if (qixiOn) {
-      // 七夕：深靛蓝实色 + 黑底白字，与星空天幕协调
-      themeColor?.setAttribute('content', '#2a2350')
-      statusBar?.setAttribute('content', 'black')
-    } else {
-      // 经典：草坪绿 + 白底黑字
-      themeColor?.setAttribute('content', '#8ed17a')
-      statusBar?.setAttribute('content', 'default')
-    }
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute('content', qixiOn ? '#fbe9ee' : '#8ed17a')
   }, [qixiOn])
 
   // 启动时：检查 token 是否仍有效，并从后端拉取进度
