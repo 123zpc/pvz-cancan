@@ -230,6 +230,12 @@ export function QixiDecor() {
         }}
         aria-hidden="true"
       >
+        {/* 状态栏安全区玫瑰色遮罩：避免横幅深色背景污染 iOS 状态栏区域，让它显示与 body 一致的玫瑰色 */}
+        <div
+          className="absolute inset-x-0 top-0 z-[7]"
+          style={{ height: 'env(safe-area-inset-top, 0px)', backgroundColor: 'oklch(0.965 0.022 350)' }}
+          aria-hidden="true"
+        />
         {/* 星群 */}
         {BAND_STARS.map((s, i) => (
           <Star4
