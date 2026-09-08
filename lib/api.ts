@@ -14,7 +14,7 @@ export const API_BASE =
     ? ''
     : process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8081'
 
-/** 进度数据结构：主游戏 + 消消乐 + 用时统计 */
+/** 进度数据结构：主游戏 + 消消乐 + 星愿花园 + 用时统计 */
 export interface Progress {
   unlocked: number
   cleared: number[]
@@ -26,6 +26,8 @@ export interface Progress {
   levelBestTimes?: Record<number, number>
   /** 消消乐每关最佳通关用时（秒） */
   m3LevelBestTimes?: Record<number, number>
+  /** 星愿花园历史最高星光分数 */
+  starlightBestScore?: number
   /** 最近一次保存进度的时间戳（epoch 毫秒） */
   lastPlayedAt?: number
 }
@@ -64,6 +66,7 @@ export interface AdminUserSummary {
   totalPlayTimeSec: number
   levelBestTimes: Record<number, number>
   m3LevelBestTimes: Record<number, number>
+  starlightBestScore: number
   lastPlayedAt: number
 }
 

@@ -43,9 +43,9 @@ public class ProgressService {
   public synchronized void save(String userId, Progress progress) {
     Progress merged = mergeForPlayer(get(userId), progress);
     redisTemplate.opsForValue().set(PROGRESS_PREFIX + userId, merged);
-    log.info("用户 {} 进度已保存：主游戏 unlocked={}, cleared={}；消消乐 m3Unlocked={}, m3Cleared={}",
+    log.info("用户 {} 进度已保存：主游戏 unlocked={}, cleared={}；消消乐 m3Unlocked={}, m3Cleared={}；星愿花园最高分={}",
         userId, merged.getUnlocked(), merged.getCleared(),
-        merged.getM3Unlocked(), merged.getM3Cleared());
+        merged.getM3Unlocked(), merged.getM3Cleared(), merged.getStarlightBestScore());
   }
 
   /** 管理员覆盖是唯一允许降低玩家进度的写入路径。 */
@@ -83,6 +83,7 @@ public class ProgressService {
     merged.setTotalPlayTimeSec(Math.max(existing.getTotalPlayTimeSec(), requested.getTotalPlayTimeSec()));
     merged.setLevelBestTimes(mergeBestTimes(existing.getLevelBestTimes(), requested.getLevelBestTimes()));
     merged.setM3LevelBestTimes(mergeBestTimes(existing.getM3LevelBestTimes(), requested.getM3LevelBestTimes()));
+    merged.setStarlightBestScore(Math.max(existing.getStarlightBestScore(), requested.getStarlightBestScore()));
     merged.setLastPlayedAt(Math.max(existing.getLastPlayedAt(), requested.getLastPlayedAt()));
     return merged;
   }
@@ -96,6 +97,7 @@ public class ProgressService {
     if (normalized.getTotalPlayTimeSec() == null) normalized.setTotalPlayTimeSec(0L);
     if (normalized.getLevelBestTimes() == null) normalized.setLevelBestTimes(Map.of());
     if (normalized.getM3LevelBestTimes() == null) normalized.setM3LevelBestTimes(Map.of());
+    if (normalized.getStarlightBestScore() == null || normalized.getStarlightBestScore() < 0) normalized.setStarlightBestScore(0L);
     if (normalized.getLastPlayedAt() == null) normalized.setLastPlayedAt(System.currentTimeMillis());
     return normalized;
   }

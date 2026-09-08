@@ -43,6 +43,7 @@ public class AdminService {
       item.put("totalPlayTimeSec", p.getTotalPlayTimeSec() == null ? 0L : p.getTotalPlayTimeSec());
       item.put("levelBestTimes", p.getLevelBestTimes() == null ? Map.of() : p.getLevelBestTimes());
       item.put("m3LevelBestTimes", p.getM3LevelBestTimes() == null ? Map.of() : p.getM3LevelBestTimes());
+      item.put("starlightBestScore", p.getStarlightBestScore() == null ? 0L : p.getStarlightBestScore());
       item.put("lastPlayedAt", p.getLastPlayedAt() == null ? 0L : p.getLastPlayedAt());
       return item;
     }).toList();

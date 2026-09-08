@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Gamepad2, Puzzle, Trophy } from 'lucide-react'
+import { ArrowLeft, Gamepad2, Puzzle, Sparkles, Trophy } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 import { PlantSprite, SunSprite, ZombieSprite } from './sprites'
 import { audio } from '@/lib/game/audio'
@@ -10,6 +10,7 @@ interface GamesHubProps {
   onBack: () => void
   onSelectPvZ: () => void
   onSelectMatch3: () => void
+  onSelectStarlightGarden: () => void
   /** 植物大战僵尸进度 */
   pvzUnlocked: number
   pvzCleared: number[]
@@ -18,18 +19,22 @@ interface GamesHubProps {
   m3Unlocked: number
   m3Cleared: number[]
   m3Total: number
+  /** 星愿花园本地最高分 */
+  starlightBestScore: number
 }
 
 export function GamesHub({
   onBack,
   onSelectPvZ,
   onSelectMatch3,
+  onSelectStarlightGarden,
   pvzUnlocked,
   pvzCleared,
   pvzTotal,
   m3Unlocked,
   m3Cleared,
   m3Total,
+  starlightBestScore,
 }: GamesHubProps) {
   useEffect(() => {
     audio.startMusic('menu')
@@ -101,6 +106,27 @@ export function GamesHub({
             }
           />
         </li>
+        <li className="sm:col-span-2">
+          <GameCard
+            title="星愿花园"
+            subtitle="收集星露，唤醒月眠花"
+            icon={<Sparkles className="size-5" />}
+            cleared={starlightBestScore > 0 ? 1 : 0}
+            total={1}
+            unlocked={1}
+            onClick={onSelectStarlightGarden}
+            progressLabel={starlightBestScore > 0 ? `最高星光 ${starlightBestScore}` : '一场月光里的小冒险'}
+            cardClassName="border-violet-200 bg-[linear-gradient(135deg,#fff8e8_0%,#f8edff_48%,#ebefff_100%)] hover:border-violet-400"
+            decoration={
+              <div className="flex items-end gap-2 text-4xl sm:text-5xl" aria-hidden="true">
+                <span className="origin-bottom animate-pulse [animation-duration:2.8s]">✦</span>
+                <span className="origin-bottom animate-bounce [animation-duration:2.2s]">🌙</span>
+                <span className="origin-bottom animate-pulse [animation-duration:2.5s]">🌸</span>
+                <span className="origin-bottom animate-bounce [animation-duration:2.7s]">🫧</span>
+              </div>
+            }
+          />
+        </li>
       </ul>
     </main>
   )
@@ -115,9 +141,11 @@ interface GameCardProps {
   unlocked: number
   onClick: () => void
   decoration: ReactNode
+  progressLabel?: string
+  cardClassName?: string
 }
 
-function GameCard({ title, subtitle, icon, cleared, total, unlocked, onClick, decoration }: GameCardProps) {
+function GameCard({ title, subtitle, icon, cleared, total, unlocked, onClick, decoration, progressLabel, cardClassName }: GameCardProps) {
   const unlockedCount = Math.min(Math.max(unlocked, 0), total)
   const clearedCount = Math.min(Math.max(cleared, 0), total)
   const pct = total > 0 ? Math.round((unlockedCount / total) * 100) : 0
@@ -125,7 +153,7 @@ function GameCard({ title, subtitle, icon, cleared, total, unlocked, onClick, de
     <button
       type="button"
       onClick={onClick}
-      className="group relative h-full w-full overflow-hidden rounded-3xl border-2 border-border bg-card p-5 text-left shadow-md transition-transform hover:-translate-y-1 hover:border-primary hover:shadow-lg"
+      className={`group relative h-full w-full overflow-hidden rounded-3xl border-2 border-border bg-card p-5 text-left shadow-md transition-transform hover:-translate-y-1 hover:border-primary hover:shadow-lg ${cardClassName ?? ''}`}
     >
       <div className="flex items-center gap-2">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -143,8 +171,8 @@ function GameCard({ title, subtitle, icon, cleared, total, unlocked, onClick, de
 
       <div className="mt-4">
         <div className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
-          <span>游戏进度</span>
-          <span className="tabular-nums">{unlockedCount}/{total}</span>
+          <span>{progressLabel ?? '游戏进度'}</span>
+          {!progressLabel && <span className="tabular-nums">{unlockedCount}/{total}</span>}
         </div>
         <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
           <div
@@ -152,10 +180,12 @@ function GameCard({ title, subtitle, icon, cleared, total, unlocked, onClick, de
             style={{ width: `${pct}%` }}
           />
         </div>
-        <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-          <Trophy className="size-3" />
-          已通关 {clearedCount}/{total} 关
-        </p>
+        {!progressLabel && (
+          <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+            <Trophy className="size-3" />
+            已通关 {clearedCount}/{total} 关
+          </p>
+        )}
       </div>
     </button>
   )

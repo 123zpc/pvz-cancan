@@ -43,11 +43,13 @@ class ProgressServiceTest {
     adminProgress.setTotalPlayTimeSec(120L);
     adminProgress.setLevelBestTimes(Map.of(1, 30L));
     adminProgress.setM3LevelBestTimes(Map.of(1, 18L));
+    adminProgress.setStarlightBestScore(680L);
     adminProgress.setLastPlayedAt(200L);
     when(valueOperations.get("progress:" + USER_ID)).thenReturn(adminProgress);
 
     Progress staleInitialState = new Progress(1, List.of(), 1, List.of());
     staleInitialState.setTotalPlayTimeSec(0L);
+    staleInitialState.setStarlightBestScore(400L);
     staleInitialState.setLastPlayedAt(100L);
 
     progressService.save(USER_ID, staleInitialState);
@@ -62,6 +64,7 @@ class ProgressServiceTest {
     assertThat(saved.getTotalPlayTimeSec()).isEqualTo(120L);
     assertThat(saved.getLevelBestTimes()).containsEntry(1, 30L);
     assertThat(saved.getM3LevelBestTimes()).containsEntry(1, 18L);
+    assertThat(saved.getStarlightBestScore()).isEqualTo(680L);
     assertThat(saved.getLastPlayedAt()).isEqualTo(200L);
   }
 

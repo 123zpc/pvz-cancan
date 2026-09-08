@@ -13,6 +13,7 @@ import java.util.Map;
  * - m3Unlocked / m3Cleared：消消乐小游戏
  * - totalPlayTimeSec：累计游戏时长（秒）
  * - levelBestTimes / m3LevelBestTimes：每关最佳通关用时（秒），key 为关卡 id
+ * - starlightBestScore：星愿花园历史最高星光分数
  * - lastPlayedAt：最近一次游戏时间（epoch 毫秒）
  */
 @Data
@@ -26,6 +27,7 @@ public class Progress {
   private Long totalPlayTimeSec;
   private Map<Integer, Long> levelBestTimes;
   private Map<Integer, Long> m3LevelBestTimes;
+  private Long starlightBestScore;
   private Long lastPlayedAt;
 
   /** 兼容旧数据：构造一个最小可用进度。 */
@@ -37,6 +39,7 @@ public class Progress {
     this.totalPlayTimeSec = 0L;
     this.levelBestTimes = new java.util.HashMap<>();
     this.m3LevelBestTimes = new java.util.HashMap<>();
+    this.starlightBestScore = 0L;
     this.lastPlayedAt = System.currentTimeMillis();
   }
 }

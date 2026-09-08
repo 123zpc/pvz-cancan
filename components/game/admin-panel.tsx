@@ -391,6 +391,10 @@ function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void
             <span className="mx-1 opacity-50">·</span>
             最近 {fmtDate(user.lastPlayedAt)}
           </p>
+          <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-violet-500">
+            <Sparkles className="size-3" aria-hidden="true" />
+            星愿花园最高星光 {user.starlightBestScore || '—'}
+          </p>
         </div>
         <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
       </div>

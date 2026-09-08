@@ -12,6 +12,7 @@ import { Match3 } from '@/components/game/match3'
 import { Match3Select } from '@/components/game/match3-select'
 import { MusicToggle } from '@/components/game/music-toggle'
 import { QixiDecor, QixiGreeting } from '@/components/game/qixi-theme'
+import { StarlightGarden } from '@/components/game/starlight-garden'
 import { audio } from '@/lib/game/audio'
 import {
   ADMIN_USER_ID,
@@ -26,7 +27,7 @@ import {
   type Progress,
 } from '@/lib/api'
 
-type View = 'menu' | 'games' | 'levels' | 'story' | 'about' | 'battle' | 'match3-select' | 'match3' | 'admin'
+type View = 'menu' | 'games' | 'levels' | 'story' | 'about' | 'battle' | 'match3-select' | 'match3' | 'starlight-garden' | 'admin'
 
 /** 本地兜底进度：后端不可用时使用，保证离线可玩。包含主游戏 + 消消乐 */
 const STORAGE_KEY = 'pvz-cancan-progress-fallback'
@@ -49,6 +50,7 @@ interface FullProgress {
   cleared: number[]
   m3Unlocked?: number
   m3Cleared?: number[]
+  starlightBestScore?: number
 }
 
 function loadLocalProgress(): FullProgress {
@@ -62,6 +64,9 @@ function loadLocalProgress(): FullProgress {
       cleared: Array.isArray(data.cleared) ? data.cleared : [],
       m3Unlocked: Math.max(1, Math.min(MATCH3_LEVELS.length, data.m3Unlocked ?? 1)),
       m3Cleared: Array.isArray(data.m3Cleared) ? data.m3Cleared : [],
+      starlightBestScore: Number.isFinite(data.starlightBestScore) && data.starlightBestScore > 0
+        ? Math.floor(data.starlightBestScore)
+        : 0,
     }
   } catch {
     return { unlocked: 1, cleared: [] }
@@ -92,6 +97,8 @@ export default function Page() {
   const [levelBestTimes, setLevelBestTimes] = useState<Record<number, number>>({})
   /** 消消乐每关最佳通关用时 */
   const [m3LevelBestTimes, setM3LevelBestTimes] = useState<Record<number, number>>({})
+  /** 星愿花园历史最高分：随 Progress 写入后端，离线时保留在本地兜底。 */
+  const [starlightBestScore, setStarlightBestScore] = useState(0)
   /** 七夕限定主题（管理后台可开关） */
   const [qixiOn, setQixiOn] = useState<boolean>(loadQixiCache)
 
@@ -140,6 +147,7 @@ export default function Page() {
         setTotalPlayTimeSec(p.totalPlayTimeSec ?? 0)
         setLevelBestTimes(p.levelBestTimes ?? {})
         setM3LevelBestTimes(p.m3LevelBestTimes ?? {})
+        setStarlightBestScore(p.starlightBestScore ?? 0)
         // 云端进度写入状态后才启用自动保存，避免初始第 1 关覆盖它。
         setAuthed(true)
       })
@@ -167,6 +175,7 @@ export default function Page() {
         setTotalPlayTimeSec(p.totalPlayTimeSec ?? 0)
         setLevelBestTimes(p.levelBestTimes ?? {})
         setM3LevelBestTimes(p.m3LevelBestTimes ?? {})
+        setStarlightBestScore(p.starlightBestScore ?? 0)
       } catch {
         // 云端无进度时用本地兜底
         const local = loadLocalProgress()
@@ -174,6 +183,7 @@ export default function Page() {
         setCleared(local.cleared)
         setM3Unlocked(local.m3Unlocked ?? 1)
         setM3Cleared(local.m3Cleared ?? [])
+        setStarlightBestScore(local.starlightBestScore ?? 0)
       }
       // 等云端进度（或本地兜底）写入状态后再保存，避免初始第 1 关发生竞态覆盖。
       setAuthed(true)
@@ -196,11 +206,12 @@ export default function Page() {
       totalPlayTimeSec,
       levelBestTimes,
       m3LevelBestTimes,
+      starlightBestScore,
       lastPlayedAt: Date.now(),
     }
     saveLocalProgress(p)
     saveProgress(p).catch(() => { /* 后端不可达时静默，本地已存 */ })
-  }, [authed, unlocked, cleared, m3Unlocked, m3Cleared, totalPlayTimeSec, levelBestTimes, m3LevelBestTimes])
+  }, [authed, unlocked, cleared, m3Unlocked, m3Cleared, totalPlayTimeSec, levelBestTimes, m3LevelBestTimes, starlightBestScore])
 
   const handleWin = useCallback((levelId: number, timeSec: number) => {
     setCleared((c) => (c.includes(levelId) ? c : [...c, levelId]))
@@ -242,12 +253,13 @@ export default function Page() {
     setTotalPlayTimeSec(0)
     setLevelBestTimes({})
     setM3LevelBestTimes({})
+    setStarlightBestScore(0)
     setLevel(null)
     setMatch3Level(null)
   }, [])
 
-  // 七夕装饰：仅非游戏界面（battle/match3 保持棋盘清爽）
-  const showQixiDecor = qixiOn && view !== 'battle' && view !== 'match3'
+  // 七夕装饰：仅非游戏界面（battle/match3/星愿花园保持场景清爽）
+  const showQixiDecor = qixiOn && view !== 'battle' && view !== 'match3' && view !== 'starlight-garden'
 
   // 密码门
   if (!authed) {
@@ -293,12 +305,14 @@ export default function Page() {
           onBack={() => setView('menu')}
           onSelectPvZ={() => setView('levels')}
           onSelectMatch3={() => setView('match3-select')}
+          onSelectStarlightGarden={() => setView('starlight-garden')}
           pvzUnlocked={unlocked}
           pvzCleared={cleared}
           pvzTotal={LEVELS.length}
           m3Unlocked={m3Unlocked}
           m3Cleared={m3Cleared}
           m3Total={MATCH3_LEVELS.length}
+          starlightBestScore={starlightBestScore}
         />
       </>
     )
@@ -322,6 +336,16 @@ export default function Page() {
         onExit={() => setView('match3-select')}
         onWin={handleMatch3Win}
         onNext={nextMatch3Level ? () => { setMatch3Level(nextMatch3Level); setView('match3') } : undefined}
+      />
+    )
+  }
+
+  if (view === 'starlight-garden') {
+    return (
+      <StarlightGarden
+        onBack={() => setView('games')}
+        bestScore={starlightBestScore}
+        onBestScore={setStarlightBestScore}
       />
     )
   }
