@@ -33,3 +33,6 @@ yarn-error.log*
 .idea/
 .vscode/
 *.swp
+
+# 星露谷OST源文件（体量大，仅public/music中的选用曲目入库）
+SDVOST/

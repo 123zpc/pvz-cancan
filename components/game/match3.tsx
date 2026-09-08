@@ -185,6 +185,12 @@ export function Match3({ level, onExit, onWin, onNext }: Match3Props) {
     reset()
   }, [reset])
 
+  // 消消乐背景音乐
+  useEffect(() => {
+    audio.startMusic('match3')
+    return () => { audio.stopMusic() }
+  }, [])
+
   useEffect(() => {
     if (!isEndless) return
     void refreshLeaderboard()

@@ -1,7 +1,7 @@
 /**
- * 音频引擎 - 使用 Web Audio API 合成游戏音乐与音效。
- * 风格参考星露谷物语：温暖、舒缓、田园。
- * 无需外部音频文件，所有声音由振荡器与噪声实时生成。
+ * 音频引擎。
+ * 背景音乐：播放星露谷物语原声 mp3（public/music 目录）。
+ * 游戏音效：仍由 Web Audio API 振荡器与噪声实时合成。
  */
 
 /* ── 音符频率表（Hz） ── */
@@ -34,116 +34,24 @@ interface MelodyNote {
 }
 
 /* ═══════════════════════════════════════════════
-   原创旋律 — 星露谷物语风格 · 灿灿专属
-   特点：慢速、温暖、大调、五声音阶，像阳光洒在草坪上
+   背景音乐 — 星露谷物语原声（ConcernedApe）
    ═══════════════════════════════════════════════ */
 
-/** 主菜单主题：早安，草坪 — 温暖 C 大调，像清晨第一缕阳光 */
-const MENU_THEME: MelodyNote[] = [
-  { note: 'C4', dur: 1.0, vel: 0.38 }, { note: 'E4', dur: 0.8, vel: 0.38 },
-  { note: 'G4', dur: 1.2, vel: 0.42 }, { note: 'C5', dur: 1.5, vel: 0.42 },
-  { note: 'R', dur: 0.6 },
-  { note: 'G4', dur: 0.8, vel: 0.34 }, { note: 'A4', dur: 0.8, vel: 0.34 },
-  { note: 'G4', dur: 0.8, vel: 0.34 }, { note: 'E4', dur: 1.2, vel: 0.38 },
-  { note: 'D4', dur: 0.8, vel: 0.34 }, { note: 'E4', dur: 0.8, vel: 0.34 },
-  { note: 'D4', dur: 0.8, vel: 0.34 }, { note: 'C4', dur: 1.8, vel: 0.38 },
-  { note: 'R', dur: 0.8 },
-  { note: 'E4', dur: 0.8, vel: 0.38 }, { note: 'G4', dur: 0.8, vel: 0.38 },
-  { note: 'A4', dur: 1.0, vel: 0.42 }, { note: 'C5', dur: 1.0, vel: 0.42 },
-  { note: 'D5', dur: 0.8, vel: 0.40 }, { note: 'C5', dur: 0.8, vel: 0.40 },
-  { note: 'A4', dur: 1.2, vel: 0.38 }, { note: 'G4', dur: 1.2, vel: 0.38 },
-  { note: 'E4', dur: 0.8, vel: 0.34 }, { note: 'D4', dur: 0.8, vel: 0.34 },
-  { note: 'C4', dur: 2.0, vel: 0.38 },
-]
+type MusicType = 'menu' | 'day' | 'night' | 'match3' | 'garden'
 
-/** 菜单低音线：简单根音，温暖铺垫 */
-const MENU_BASS: MelodyNote[] = [
-  { note: 'C3', dur: 4.0, vel: 0.14 }, { note: 'G2', dur: 4.0, vel: 0.14 },
-  { note: 'A2', dur: 4.0, vel: 0.14 }, { note: 'F2', dur: 4.0, vel: 0.14 },
-  { note: 'C3', dur: 4.0, vel: 0.14 }, { note: 'G2', dur: 4.0, vel: 0.14 },
-  { note: 'F2', dur: 2.0, vel: 0.14 }, { note: 'G2', dur: 2.0, vel: 0.14 },
-  { note: 'C3', dur: 4.0, vel: 0.14 },
-]
-
-/** 菜单和弦铺垫：C - G - Am - F */
-const MENU_CHORDS: { notes: `${NoteName}${number}`[]; dur: number }[] = [
-  { notes: ['C3', 'E3', 'G3'], dur: 18.0 },
-  { notes: ['G2', 'B2', 'D3'], dur: 18.0 },
-  { notes: ['A2', 'C3', 'E3'], dur: 18.0 },
-  { notes: ['F2', 'A2', 'C3'], dur: 18.0 },
-]
-
-/** 白天战斗主题：阳光草坪 — 轻快但不急促，像在花园里劳作 */
-const DAY_BATTLE: MelodyNote[] = [
-  { note: 'C4', dur: 0.7, vel: 0.38 }, { note: 'E4', dur: 0.6, vel: 0.38 },
-  { note: 'G4', dur: 0.9, vel: 0.40 }, { note: 'E4', dur: 0.6, vel: 0.35 },
-  { note: 'C5', dur: 0.9, vel: 0.42 }, { note: 'A4', dur: 0.6, vel: 0.38 },
-  { note: 'G4', dur: 0.9, vel: 0.38 }, { note: 'E4', dur: 0.7, vel: 0.35 },
-  { note: 'F4', dur: 0.7, vel: 0.38 }, { note: 'A4', dur: 0.6, vel: 0.38 },
-  { note: 'C5', dur: 0.9, vel: 0.40 }, { note: 'A4', dur: 0.6, vel: 0.35 },
-  { note: 'G4', dur: 0.9, vel: 0.38 }, { note: 'E4', dur: 0.6, vel: 0.35 },
-  { note: 'D4', dur: 0.7, vel: 0.34 }, { note: 'C4', dur: 1.2, vel: 0.38 },
-  { note: 'R', dur: 0.5 },
-  { note: 'G4', dur: 0.7, vel: 0.38 }, { note: 'C5', dur: 0.6, vel: 0.40 },
-  { note: 'E5', dur: 0.9, vel: 0.42 }, { note: 'D5', dur: 0.6, vel: 0.40 },
-  { note: 'C5', dur: 0.9, vel: 0.40 }, { note: 'A4', dur: 0.6, vel: 0.38 },
-  { note: 'G4', dur: 0.9, vel: 0.38 }, { note: 'E4', dur: 0.7, vel: 0.35 },
-  { note: 'F4', dur: 0.7, vel: 0.35 }, { note: 'G4', dur: 0.6, vel: 0.35 },
-  { note: 'A4', dur: 0.9, vel: 0.38 }, { note: 'G4', dur: 0.7, vel: 0.35 },
-  { note: 'C4', dur: 1.5, vel: 0.38 },
-]
-
-/** 白天低音 */
-const DAY_BASS: MelodyNote[] = [
-  { note: 'C3', dur: 2.2, vel: 0.14 }, { note: 'F3', dur: 2.2, vel: 0.14 },
-  { note: 'G3', dur: 2.2, vel: 0.14 }, { note: 'C3', dur: 2.2, vel: 0.14 },
-  { note: 'C3', dur: 2.2, vel: 0.14 }, { note: 'F3', dur: 2.2, vel: 0.14 },
-  { note: 'G3', dur: 2.2, vel: 0.14 }, { note: 'C3', dur: 2.5, vel: 0.14 },
-]
-
-/** 白天和弦铺垫：C - F - G - C */
-const DAY_CHORDS: { notes: `${NoteName}${number}`[]; dur: number }[] = [
-  { notes: ['C3', 'E3', 'G3'], dur: 8.8 },
-  { notes: ['F2', 'A2', 'C3'], dur: 8.8 },
-  { notes: ['G2', 'B2', 'D3'], dur: 8.8 },
-  { notes: ['C3', 'E3', 'G3'], dur: 9.0 },
-]
-
-/** 夜晚战斗主题：星光草坪 — 宁静 C 大调摇篮曲，像仰望星空 */
-const NIGHT_BATTLE: MelodyNote[] = [
-  { note: 'C4', dur: 1.4, vel: 0.35 }, { note: 'E4', dur: 1.0, vel: 0.35 },
-  { note: 'G4', dur: 1.4, vel: 0.38 },
-  { note: 'C5', dur: 1.8, vel: 0.38 }, { note: 'G4', dur: 1.0, vel: 0.35 },
-  { note: 'E4', dur: 1.4, vel: 0.35 },
-  { note: 'R', dur: 0.6 },
-  { note: 'A4', dur: 1.2, vel: 0.35 }, { note: 'G4', dur: 1.0, vel: 0.35 },
-  { note: 'F4', dur: 1.0, vel: 0.33 }, { note: 'E4', dur: 1.4, vel: 0.35 },
-  { note: 'D4', dur: 1.0, vel: 0.33 }, { note: 'C4', dur: 2.0, vel: 0.35 },
-  { note: 'R', dur: 0.8 },
-  { note: 'E4', dur: 1.2, vel: 0.35 }, { note: 'G4', dur: 1.0, vel: 0.35 },
-  { note: 'C5', dur: 1.4, vel: 0.38 },
-  { note: 'D5', dur: 1.0, vel: 0.35 }, { note: 'C5', dur: 1.2, vel: 0.35 },
-  { note: 'A4', dur: 1.0, vel: 0.33 }, { note: 'G4', dur: 1.4, vel: 0.35 },
-  { note: 'E4', dur: 1.0, vel: 0.33 }, { note: 'D4', dur: 1.0, vel: 0.33 },
-  { note: 'C4', dur: 2.5, vel: 0.35 },
-]
-
-/** 夜晚低音 */
-const NIGHT_BASS: MelodyNote[] = [
-  { note: 'C3', dur: 5.0, vel: 0.13 }, { note: 'A2', dur: 5.0, vel: 0.13 },
-  { note: 'F2', dur: 5.0, vel: 0.13 }, { note: 'G2', dur: 5.0, vel: 0.13 },
-  { note: 'C3', dur: 5.0, vel: 0.13 }, { note: 'A2', dur: 5.0, vel: 0.13 },
-  { note: 'F2', dur: 2.5, vel: 0.13 }, { note: 'G2', dur: 2.5, vel: 0.13 },
-  { note: 'C3', dur: 5.0, vel: 0.13 },
-]
-
-/** 夜晚和弦铺垫：C - Am - F - G */
-const NIGHT_CHORDS: { notes: `${NoteName}${number}`[]; dur: number }[] = [
-  { notes: ['C3', 'E3', 'G3'], dur: 22.0 },
-  { notes: ['A2', 'C3', 'E3'], dur: 22.0 },
-  { notes: ['F2', 'A2', 'C3'], dur: 22.0 },
-  { notes: ['G2', 'B2', 'D3'], dur: 22.0 },
-]
+/** 场景与曲目映射，文件位于 public/music */
+const MUSIC_TRACKS: Record<MusicType, { src: string; volume: number }> = {
+  /** 主菜单等非游戏界面：Stardew Valley Overture */
+  menu: { src: '/music/menu-overture.mp3', volume: 0.55 },
+  /** 白天战斗：Spring (The Valley Comes Alive) */
+  day: { src: '/music/battle-day.mp3', volume: 0.5 },
+  /** 夜晚战斗：Winter (Nocturne Of Ice) */
+  night: { src: '/music/battle-night.mp3', volume: 0.5 },
+  /** 消消乐：Summer (Tropicala) */
+  match3: { src: '/music/match3.mp3', volume: 0.5 },
+  /** 星愿花园：Dance Of The Moonlight Jellies */
+  garden: { src: '/music/starlight-garden.mp3', volume: 0.55 },
+}
 
 /** 通关旋律：温暖的胜利钟声 */
 const WIN_JINGLE: MelodyNote[] = [
@@ -193,11 +101,11 @@ class AudioManager {
   private _muted = false
   private _musicOn = true
   private _sfxOn = true
-  private musicTimeout: ReturnType<typeof setTimeout> | null = null
-  private chordTimeout: ReturnType<typeof setTimeout> | null = null
-  private musicPlaying = false
-  private currentMusicType: 'menu' | 'day' | 'night' | null = null
+  private musicEl: HTMLAudioElement | null = null
+  private musicElType: MusicType | null = null
+  private currentMusicType: MusicType | null = null
   private _resumeListener = false
+  private _musicRetryListener = false
 
   constructor() {
     this._musicOn = loadBool(STORAGE_MUSIC, true)
@@ -235,15 +143,6 @@ class AudioManager {
     document.addEventListener('click', resume, { passive: true })
   }
 
-  /** 重新创建 masterGain，立即切断所有已调度的声音 */
-  private _killAllSounds() {
-    if (!this.ctx) return
-    try { this.masterGain?.disconnect() } catch { /* 忽略 */ }
-    this.masterGain = this.ctx.createGain()
-    this.masterGain.connect(this.ctx.destination)
-    this.masterGain.gain.value = this._muted ? 0 : 0.30
-  }
-
   get muted() { return this._muted }
   get musicOn() { return this._musicOn }
   get sfxOn() { return this._sfxOn }
@@ -254,7 +153,14 @@ class AudioManager {
     if (this.masterGain) {
       this.masterGain.gain.value = this._muted ? 0 : 0.30
     }
-    if (this._muted) this.stopMusic()
+    if (this.musicEl) {
+      this.musicEl.volume = this._muted ? 0 : (this.musicElType ? MUSIC_TRACKS[this.musicElType].volume : 0.5)
+    }
+    if (this._muted) {
+      this.stopMusic()
+    } else if (this._musicOn && this.currentMusicType) {
+      this.startMusic(this.currentMusicType)
+    }
   }
 
   toggleMusic() {
@@ -276,183 +182,56 @@ class AudioManager {
     if (this.masterGain) this.masterGain.gain.value = Math.max(0, Math.min(1, v))
   }
 
-  /* ── 音乐播放 ── */
+  /* ── 音乐播放（星露谷原声 mp3） ── */
 
-  startMusic(type: 'menu' | 'day' | 'night') {
+  startMusic(type: MusicType) {
     this.currentMusicType = type
     if (!this._musicOn || this._muted) return
-    this.stopMusic()
-    const ctx = this.getCtx()
-    const melody = type === 'menu' ? MENU_THEME : type === 'day' ? DAY_BATTLE : NIGHT_BATTLE
-    const bass = type === 'menu' ? MENU_BASS : type === 'day' ? DAY_BASS : NIGHT_BASS
-    const chords = type === 'menu' ? MENU_CHORDS : type === 'day' ? DAY_CHORDS : NIGHT_CHORDS
-    // 星露谷风格：更慢速，让音符有充分呼吸感
-    const speed = type === 'menu' ? 0.48 : type === 'day' ? 0.55 : 0.42
-    this.musicPlaying = true
-    this._playMusicLoop(ctx, melody, bass, speed)
-    this._startChordPad(ctx, chords, speed)
+    // 同曲目正在播放时不打断，保证跨界面音乐连续
+    if (this.musicEl && this.musicElType === type && !this.musicEl.paused) return
+    this._playTrack(type)
   }
 
   stopMusic() {
-    this.musicPlaying = false
-    if (this.musicTimeout) {
-      clearTimeout(this.musicTimeout)
-      this.musicTimeout = null
-    }
-    if (this.chordTimeout) {
-      clearTimeout(this.chordTimeout)
-      this.chordTimeout = null
-    }
-    // 立即切断所有已调度但尚未播放的声音
-    this._killAllSounds()
+    this.musicEl?.pause()
   }
 
-  private _playMusicLoop(
-    ctx: AudioContext,
-    melody: MelodyNote[],
-    bass: MelodyNote[],
-    speed: number,
-    melIdx = 0,
-    bassIdx = 0,
-    melTime = ctx.currentTime,
-    bassTime = ctx.currentTime,
-  ) {
-    if (!this.musicPlaying || this._muted) return
+  private _playTrack(type: MusicType) {
+    if (typeof window === 'undefined') return
+    const track = MUSIC_TRACKS[type]
+    if (!this.musicEl) {
+      this.musicEl = new Audio()
+      this.musicEl.loop = true
+      this.musicEl.preload = 'auto'
+    }
+    if (this.musicElType !== type) {
+      this.musicEl.src = track.src
+      this.musicElType = type
+    }
+    this.musicEl.volume = this._muted ? 0 : track.volume
+    const p = this.musicEl.play()
+    if (p) p.catch(() => this._ensureMusicRetryOnGesture())
+  }
 
-    // 播放旋律音符
-    if (melIdx < melody.length) {
-      const mn = melody[melIdx]
-      if (mn.note !== 'R') {
-        this._playNote(ctx, freq(mn.note), mn.dur * speed * 0.9, 'triangle', mn.vel ?? 0.45, melTime)
-        // 轻混响：延迟 0.15s 的柔和回声
-        this._playNote(ctx, freq(mn.note), mn.dur * speed * 0.4, 'sine', (mn.vel ?? 0.45) * 0.06, melTime + 0.15)
+  /** iOS 等平台要求用户交互后才能播放音频：播放被拒时挂全局手势监听，首次交互时重试 */
+  private _ensureMusicRetryOnGesture() {
+    if (this._musicRetryListener) return
+    this._musicRetryListener = true
+    const retry = () => {
+      if (this.musicEl?.paused && this._musicOn && !this._muted && this.currentMusicType) {
+        this.musicEl.play()
+          ?.then(() => {
+            document.removeEventListener('touchstart', retry)
+            document.removeEventListener('touchend', retry)
+            document.removeEventListener('click', retry)
+            this._musicRetryListener = false
+          })
+          .catch(() => { /* 继续等待下一次手势 */ })
       }
-      melTime += mn.dur * speed
-      melIdx++
-    } else {
-      melIdx = 0
-      melTime = ctx.currentTime
     }
-
-    // 播放低音音符
-    if (bassIdx < bass.length) {
-      const bn = bass[bassIdx]
-      if (bn.note !== 'R') {
-        this._playNote(ctx, freq(bn.note), bn.dur * speed * 0.95, 'sine', bn.vel ?? 0.22, bassTime)
-      }
-      bassTime += bn.dur * speed
-      bassIdx++
-    } else {
-      bassIdx = 0
-      bassTime = ctx.currentTime
-    }
-
-    // 递归调度下一帧
-    const nextDelay = Math.min(
-      melIdx < melody.length ? melody[melIdx].dur * speed * 1000 : 50,
-      bassIdx < bass.length ? bass[bassIdx].dur * speed * 1000 : 50,
-    )
-    this.musicTimeout = setTimeout(() => {
-      this._playMusicLoop(ctx, melody, bass, speed, melIdx, bassIdx, melTime, bassTime)
-    }, nextDelay)
-  }
-
-  /** 和弦铺垫：持续的低音量和弦，营造温暖氛围 */
-  private _startChordPad(
-    ctx: AudioContext,
-    chords: { notes: `${NoteName}${number}`[]; dur: number }[],
-    speed: number,
-    idx = 0,
-  ) {
-    if (!this.musicPlaying || this._muted) return
-
-    const chord = chords[idx % chords.length]
-    const chordDur = chord.dur * speed
-
-    chord.notes.forEach((note) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      const filter = ctx.createBiquadFilter()
-      osc.type = 'sine'
-      osc.frequency.value = freq(note)
-      filter.type = 'lowpass'
-      filter.frequency.value = 400
-      filter.Q.value = 0.3
-      const now = ctx.currentTime
-      const fadeIn = 0.8
-      const fadeOut = 1.0
-      gain.gain.setValueAtTime(0, now)
-      gain.gain.linearRampToValueAtTime(0.05, now + fadeIn)
-      gain.gain.setValueAtTime(0.05, now + chordDur - fadeOut)
-      gain.gain.linearRampToValueAtTime(0, now + chordDur)
-      osc.connect(filter)
-      filter.connect(gain)
-      gain.connect(this.masterGain!)
-      osc.start(now)
-      osc.stop(now + chordDur + 0.1)
-    })
-
-    this.chordTimeout = setTimeout(() => {
-      this._startChordPad(ctx, chords, speed, idx + 1)
-    }, chordDur * 1000)
-  }
-
-  /** 播放单个音符，使用柔和正弦波 + 轻泛音，营造温暖自然的音乐盒音色 */
-  private _playNote(
-    ctx: AudioContext,
-    hz: number,
-    duration: number,
-    wave: OscillatorType,
-    vol: number,
-    startTime: number,
-  ) {
-    const now = startTime
-    const attack = Math.min(0.06, duration * 0.12)
-    const release = Math.min(0.5, duration * 0.45)
-    const sustain = vol * 0.50
-
-    // 主音：柔和正弦波，温暖不刺耳
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    const filter = ctx.createBiquadFilter()
-
-    osc.type = 'sine'
-    osc.frequency.value = hz
-    osc.detune.value = (Math.random() - 0.5) * 1
-
-    filter.type = 'lowpass'
-    // 激进低通滤波，切掉高频刺耳部分
-    filter.frequency.value = hz < 300 ? 400 : Math.min(1600, hz * 2.5)
-    filter.Q.value = 0.25
-
-    gain.gain.setValueAtTime(0, now)
-    gain.gain.linearRampToValueAtTime(sustain, now + attack)
-    gain.gain.setValueAtTime(sustain * 0.65, now + duration - release)
-    gain.gain.linearRampToValueAtTime(0, now + duration)
-
-    osc.connect(filter)
-    filter.connect(gain)
-    gain.connect(this.masterGain!)
-    osc.start(now)
-    osc.stop(now + duration + 0.2)
-
-    // 轻柔泛音（仅高八度，极低音量，增加空气感）
-    if (hz < 800) {
-      const osc2 = ctx.createOscillator()
-      const gain2 = ctx.createGain()
-      osc2.type = 'sine'
-      osc2.frequency.value = hz * 2
-      osc2.detune.value = 3 + (Math.random() - 0.5) * 2
-      const hv2 = sustain * 0.12
-      gain2.gain.setValueAtTime(0, now + 0.02)
-      gain2.gain.linearRampToValueAtTime(hv2, now + attack + 0.02)
-      gain2.gain.setValueAtTime(hv2 * 0.5, now + duration - release)
-      gain2.gain.linearRampToValueAtTime(0, now + duration)
-      osc2.connect(gain2)
-      gain2.connect(this.masterGain!)
-      osc2.start(now + 0.02)
-      osc2.stop(now + duration + 0.2)
-    }
+    document.addEventListener('touchstart', retry, { passive: true })
+    document.addEventListener('touchend', retry, { passive: true })
+    document.addEventListener('click', retry, { passive: true })
   }
 
   /* ── 一次性音效 ── */

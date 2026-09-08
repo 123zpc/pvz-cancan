@@ -63,6 +63,12 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
     prevRef.current = { killed: 0, effects: 0, peas: 0, bigWave: false, mowers: 0 }
   }, [level, round])
 
+  // 战斗背景音乐：白天/夜晚星露谷原声
+  useEffect(() => {
+    audio.startMusic(level.night ? 'night' : 'day')
+    return () => { audio.stopMusic() }
+  }, [level.night])
+
   useEffect(() => {
     const mqMobile = window.matchMedia('(pointer: coarse) and (max-width: 1023px)')
     const mqLand = window.matchMedia('(orientation: landscape)')
