@@ -14,7 +14,7 @@ export const API_BASE =
     ? ''
     : process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:8081'
 
-/** 进度数据结构：主游戏 + 消消乐 + 星愿花园 + 用时统计 */
+/** 进度数据结构：主游戏 + 消消乐 + 萌藤贪吃蛇 + 用时统计 */
 export interface Progress {
   unlocked: number
   cleared: number[]
@@ -26,7 +26,7 @@ export interface Progress {
   levelBestTimes?: Record<number, number>
   /** 消消乐每关最佳通关用时（秒） */
   m3LevelBestTimes?: Record<number, number>
-  /** 星愿花园历史最高星光分数 */
+  /** 萌藤贪吃蛇历史最高分数 */
   starlightBestScore?: number
   /** 最近一次保存进度的时间戳（epoch 毫秒） */
   lastPlayedAt?: number
@@ -238,11 +238,26 @@ export async function adminOverwriteUser(userId: string, progress: Progress): Pr
 
 /** 管理员设置全站主题（classic / qixi / autumn）。 */
 export async function adminSetTheme(theme: SiteTheme): Promise<FestivalConfig> {
-  return request<FestivalConfig>('/api/admin/config/festival', {
+  // 立即写入本地缓存，确保当前页面即刻呈现新主题
+  try {
+    localStorage.setItem('pvz_site_theme', theme)
+    localStorage.setItem('pvz_qixi_enabled', theme === 'qixi' ? '1' : '0')
+  } catch {
+    /* 忽略存储异常 */
+  }
+
+  const res = await request<FestivalConfig>('/api/admin/config/festival', {
     method: 'POST',
     body: JSON.stringify({ theme, qixi: theme === 'qixi' }),
     auth: true,
   })
+
+  // 确保返回的配置包含明确的 theme 字段
+  return {
+    ...res,
+    theme: res.theme || (res.qixi ? 'qixi' : theme),
+    qixi: (res.theme ?? theme) === 'qixi',
+  }
 }
 
 /** 管理员切换节日主题（七夕）开关（兼容旧接口）。 */

@@ -464,7 +464,7 @@ html[data-theme='autumn'] body {
   animation: m3-rank-flash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* ── 星愿花园：PVZ 经典星夜禅境与街机特效 ── */
+/* ── 萌藤贪吃蛇：PVZ 经典草坪与街机特效 ── */
 .starlight-shell {
   background:
     radial-gradient(ellipse at 50% 0%, rgba(88, 70, 150, 0.45) 0%, transparent 60%),

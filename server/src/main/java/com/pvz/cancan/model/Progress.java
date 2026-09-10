@@ -13,7 +13,7 @@ import java.util.Map;
  * - m3Unlocked / m3Cleared：消消乐小游戏
  * - totalPlayTimeSec：累计游戏时长（秒）
  * - levelBestTimes / m3LevelBestTimes：每关最佳通关用时（秒），key 为关卡 id
- * - starlightBestScore：星愿花园历史最高星光分数
+ * - starlightBestScore：萌藤贪吃蛇历史最高分数
  * - lastPlayedAt：最近一次游戏时间（epoch 毫秒）
  */
 @Data

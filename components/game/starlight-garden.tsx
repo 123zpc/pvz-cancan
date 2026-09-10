@@ -24,18 +24,137 @@ import {
 import { PlantSprite, ZombieSprite, SunSprite } from './sprites'
 import { audio } from '@/lib/game/audio'
 import { MusicToggle } from './music-toggle'
+import { cn } from '@/lib/utils'
+import { type SiteTheme } from '@/lib/api'
 
 /* ═══════════════════════════════════════════════════════════════
-   网格与类型定义
+   网格、主题与类型定义（黄金 28 × 16 宽屏比例 7:4）
    ═══════════════════════════════════════════════════════════════ */
 
 interface StarlightGardenProps {
   onBack: () => void
   bestScore: number
   onBestScore: (score: number) => void
+  theme?: SiteTheme
 }
 
-const GRID_SIZE = 20 // 20 × 20 棋盘
+/** 宽屏横屏网格：横向 28 格，纵向 16 格（7:4 / 1.75:1 比例，完美贴合移动端横屏） */
+const GRID_COLS = 28
+const GRID_ROWS = 16
+
+/* ── 贪吃蛇地图主题配置接口（支持未来无限扩展） ── */
+export interface SnakeMapThemeConfig {
+  id: SiteTheme
+  name: string
+  icon: string
+  /** 棋盘外框边框与立体光晕 */
+  boardBorder: string
+  boardGlow: string
+  boardBg: string
+  /** 草坪棋盘地砖颜色（偶数/奇数交替） */
+  tileEven: string
+  tileOdd: string
+  gridLineColor?: string
+  /** 虚拟摇杆底座与指示环 */
+  joystickBaseBorder: string
+  joystickBaseBg: string
+  joystickGlow: string
+  joystickKnobBorder: string
+  joystickKnobBg: string
+  joystickArrowActive: string
+  /** 冲刺加速按钮 */
+  dashBorder: string
+  dashBgNormal: string
+  dashBgActive: string
+  dashGlow: string
+  dashText: string
+  /** 头部与状态强调色 */
+  headerTitleColor: string
+  scorePillBorder: string
+  scorePillText: string
+  pageBgGradient: string
+}
+
+export const SNAKE_MAP_THEMES: Record<SiteTheme, SnakeMapThemeConfig> = {
+  classic: {
+    id: 'classic',
+    name: '经典草坪',
+    icon: '🌿',
+    boardBorder: 'border-[#3a6b25]',
+    boardGlow: 'shadow-[0_0_40px_rgba(74,222,128,0.25)]',
+    boardBg: 'bg-[#102014]',
+    tileEven: 'bg-[#5ea832]',
+    tileOdd: 'bg-[#519429]',
+    gridLineColor: 'border-[#447822]/30',
+    joystickBaseBorder: 'border-emerald-400/50',
+    joystickBaseBg: 'bg-slate-950/70',
+    joystickGlow: 'shadow-[0_0_20px_rgba(16,185,129,0.35)]',
+    joystickKnobBorder: 'border-emerald-300',
+    joystickKnobBg: 'bg-gradient-to-b from-emerald-400 to-emerald-600',
+    joystickArrowActive: 'text-emerald-300 drop-shadow-[0_0_8px_#34d399]',
+    dashBorder: 'border-amber-400/60',
+    dashBgNormal: 'bg-gradient-to-b from-amber-500/30 to-amber-600/40 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.25)]',
+    dashBgActive: 'border-rose-400 bg-gradient-to-b from-rose-500 to-red-600 text-white shadow-[0_0_25px_rgba(244,63,94,0.6)]',
+    dashGlow: 'rgba(251,191,36,0.3)',
+    dashText: 'text-amber-300',
+    headerTitleColor: 'text-emerald-300',
+    scorePillBorder: 'border-emerald-400/40',
+    scorePillText: 'text-emerald-300',
+    pageBgGradient: 'from-[#0b160e] via-[#09120c] to-[#040805]',
+  },
+  qixi: {
+    id: 'qixi',
+    name: '七夕星河',
+    icon: '🌌',
+    boardBorder: 'border-[#9333ea]/70',
+    boardGlow: 'shadow-[0_0_40px_rgba(236,72,153,0.35)]',
+    boardBg: 'bg-[#140a24]',
+    tileEven: 'bg-[#2b1b4d]',
+    tileOdd: 'bg-[#221340]',
+    gridLineColor: 'border-[#4c1d95]/30',
+    joystickBaseBorder: 'border-pink-400/50',
+    joystickBaseBg: 'bg-slate-950/75',
+    joystickGlow: 'shadow-[0_0_20px_rgba(244,63,94,0.35)]',
+    joystickKnobBorder: 'border-pink-300',
+    joystickKnobBg: 'bg-gradient-to-b from-pink-400 to-rose-600',
+    joystickArrowActive: 'text-pink-300 drop-shadow-[0_0_8px_#f43f5e]',
+    dashBorder: 'border-pink-400/60',
+    dashBgNormal: 'bg-gradient-to-b from-pink-500/30 to-purple-600/40 text-pink-300 shadow-[0_0_15px_rgba(236,72,153,0.3)]',
+    dashBgActive: 'border-rose-300 bg-gradient-to-b from-pink-500 to-purple-600 text-white shadow-[0_0_25px_rgba(236,72,153,0.6)]',
+    dashGlow: 'rgba(236,72,153,0.4)',
+    dashText: 'text-pink-300',
+    headerTitleColor: 'text-pink-300',
+    scorePillBorder: 'border-pink-400/40',
+    scorePillText: 'text-pink-300',
+    pageBgGradient: 'from-[#12071f] via-[#0d0517] to-[#06020a]',
+  },
+  autumn: {
+    id: 'autumn',
+    name: '金秋丰收',
+    icon: '🍁',
+    boardBorder: 'border-[#b45309]/70',
+    boardGlow: 'shadow-[0_0_40px_rgba(245,158,11,0.35)]',
+    boardBg: 'bg-[#241304]',
+    tileEven: 'bg-[#8f631d]',
+    tileOdd: 'bg-[#7a5314]',
+    gridLineColor: 'border-[#633e0d]/30',
+    joystickBaseBorder: 'border-amber-400/50',
+    joystickBaseBg: 'bg-stone-950/75',
+    joystickGlow: 'shadow-[0_0_20px_rgba(245,158,11,0.35)]',
+    joystickKnobBorder: 'border-amber-300',
+    joystickKnobBg: 'bg-gradient-to-b from-amber-400 to-amber-600',
+    joystickArrowActive: 'text-amber-300 drop-shadow-[0_0_8px_#f59e0b]',
+    dashBorder: 'border-amber-400/60',
+    dashBgNormal: 'bg-gradient-to-b from-amber-500/30 to-orange-600/40 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)]',
+    dashBgActive: 'border-orange-300 bg-gradient-to-b from-amber-500 to-red-600 text-white shadow-[0_0_25px_rgba(245,158,11,0.6)]',
+    dashGlow: 'rgba(245,158,11,0.4)',
+    dashText: 'text-amber-300',
+    headerTitleColor: 'text-amber-300',
+    scorePillBorder: 'border-amber-400/40',
+    scorePillText: 'text-amber-300',
+    pageBgGradient: 'from-[#1a0f04] via-[#120a02] to-[#080401]',
+  },
+}
 
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT'
 
@@ -130,9 +249,10 @@ const MISSIONS: Mission[] = [
 interface VirtualJoystickProps {
   onDirection: (dir: Direction) => void
   currentDir: Direction
+  mapTheme: SnakeMapThemeConfig
 }
 
-function VirtualJoystick({ onDirection, currentDir }: VirtualJoystickProps) {
+function VirtualJoystick({ onDirection, currentDir, mapTheme }: VirtualJoystickProps) {
   const [knobOffset, setKnobOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [activeDir, setActiveDir] = useState<Direction | null>(null)
   const baseRef = useRef<HTMLDivElement>(null)
@@ -148,7 +268,7 @@ function VirtualJoystick({ onDirection, currentDir }: VirtualJoystickProps) {
     const dx = clientX - centerX
     const dy = clientY - centerY
     const dist = Math.hypot(dx, dy)
-    const maxRadius = 38 // 摇杆最大偏移半径
+    const maxRadius = 30 // 摇杆最大偏移半径
 
     let clampedX = dx
     let clampedY = dy
@@ -159,8 +279,8 @@ function VirtualJoystick({ onDirection, currentDir }: VirtualJoystickProps) {
 
     setKnobOffset({ x: clampedX, y: clampedY })
 
-    // 死区判断（大于 10px 时计算方向）
-    if (dist > 10) {
+    // 死区判断（大于 8px 时计算方向）
+    if (dist > 8) {
       const angle = (Math.atan2(dy, dx) * 180) / Math.PI
       let dir: Direction = 'RIGHT'
       if (angle >= -45 && angle <= 45) {
@@ -219,76 +339,100 @@ function VirtualJoystick({ onDirection, currentDir }: VirtualJoystickProps) {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        className="relative size-28 sm:size-32 rounded-full border-2 border-emerald-400/40 bg-slate-900/85 shadow-[0_0_20px_rgba(16,185,129,0.25)] backdrop-blur-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center transition-shadow active:shadow-[0_0_30px_rgba(16,185,129,0.45)]"
+        className={cn(
+          'relative size-22 sm:size-26 rounded-full border-2 backdrop-blur-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center transition-shadow',
+          mapTheme.joystickBaseBorder,
+          mapTheme.joystickBaseBg,
+          mapTheme.joystickGlow,
+        )}
       >
         {/* 四向刻度与高亮箭头 */}
         <span
-          className={`absolute top-1.5 flex items-center justify-center transition-transform ${
+          className={cn(
+            'absolute top-1 flex items-center justify-center transition-transform',
             activeDir === 'UP' || currentDir === 'UP'
-              ? 'text-emerald-300 drop-shadow-[0_0_8px_#34d399] scale-125'
-              : 'text-white/20'
-          }`}
+              ? cn(mapTheme.joystickArrowActive, 'scale-125')
+              : 'text-white/20',
+          )}
         >
-          <ArrowUp className="size-4" />
+          <ArrowUp className="size-3.5" />
         </span>
         <span
-          className={`absolute bottom-1.5 flex items-center justify-center transition-transform ${
+          className={cn(
+            'absolute bottom-1 flex items-center justify-center transition-transform',
             activeDir === 'DOWN' || currentDir === 'DOWN'
-              ? 'text-emerald-300 drop-shadow-[0_0_8px_#34d399] scale-125'
-              : 'text-white/20'
-          }`}
+              ? cn(mapTheme.joystickArrowActive, 'scale-125')
+              : 'text-white/20',
+          )}
         >
-          <ArrowDown className="size-4" />
+          <ArrowDown className="size-3.5" />
         </span>
         <span
-          className={`absolute left-1.5 flex items-center justify-center transition-transform ${
+          className={cn(
+            'absolute left-1 flex items-center justify-center transition-transform',
             activeDir === 'LEFT' || currentDir === 'LEFT'
-              ? 'text-emerald-300 drop-shadow-[0_0_8px_#34d399] scale-125'
-              : 'text-white/20'
-          }`}
+              ? cn(mapTheme.joystickArrowActive, 'scale-125')
+              : 'text-white/20',
+          )}
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-3.5" />
         </span>
         <span
-          className={`absolute right-1.5 flex items-center justify-center transition-transform ${
+          className={cn(
+            'absolute right-1 flex items-center justify-center transition-transform',
             activeDir === 'RIGHT' || currentDir === 'RIGHT'
-              ? 'text-emerald-300 drop-shadow-[0_0_8px_#34d399] scale-125'
-              : 'text-white/20'
-          }`}
+              ? cn(mapTheme.joystickArrowActive, 'scale-125')
+              : 'text-white/20',
+          )}
         >
-          <ArrowRight className="size-4" />
+          <ArrowRight className="size-3.5" />
         </span>
 
         {/* 内部同心装饰环 */}
-        <div className="size-16 rounded-full border border-white/10 pointer-events-none" />
+        <div className="size-11 rounded-full border border-white/10 pointer-events-none" />
 
         {/* 摇杆中心滑块（Knob） */}
         <div
-          className="absolute size-12 rounded-full border-2 border-emerald-300/80 bg-gradient-to-b from-emerald-400 to-emerald-600 shadow-[0_4px_12px_rgba(0,0,0,0.6)] pointer-events-none flex items-center justify-center"
+          className={cn(
+            'absolute size-9 rounded-full border-2 shadow-[0_4px_12px_rgba(0,0,0,0.6)] pointer-events-none flex items-center justify-center',
+            mapTheme.joystickKnobBorder,
+            mapTheme.joystickKnobBg,
+          )}
           style={{
             transform: `translate(${knobOffset.x}px, ${knobOffset.y}px)`,
             transition: pointerIdRef.current === null ? 'transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
           }}
         >
           {/* 滑块凹陷与手感凸点 */}
-          <div className="size-4 rounded-full bg-white/40 border border-white/60 shadow-inner" />
+          <div className="size-3 rounded-full bg-white/40 border border-white/60 shadow-inner" />
         </div>
       </div>
-      <p className="mt-2 text-[11px] font-bold text-emerald-200/70 tracking-wider">
-        触控摇杆转向
-      </p>
     </div>
   )
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   主组件：星愿花园 · 萌藤贪吃蛇（强制横屏模式）
+   主组件：萌藤贪吃蛇（黄金宽屏横屏模式）
    ═══════════════════════════════════════════════════════════════ */
 
-export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGardenProps) {
+export function StarlightGarden({
+  onBack,
+  bestScore,
+  onBestScore,
+  theme: defaultThemeProp,
+}: StarlightGardenProps) {
   const [selectedSkin, setSelectedSkin] = useState<SnakeSkin>('sprout')
   const [showSkinModal, setShowSkinModal] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+
+  /* 地图主题配置：默认同步全站主题，亦可在局内自由体验不同主题 */
+  const [activeThemeId, setActiveThemeId] = useState<SiteTheme>(() => defaultThemeProp ?? 'classic')
+
+  useEffect(() => {
+    if (defaultThemeProp) setActiveThemeId(defaultThemeProp)
+  }, [defaultThemeProp])
+
+  const mapTheme = SNAKE_MAP_THEMES[activeThemeId] ?? SNAKE_MAP_THEMES.classic
 
   /* 横屏与移动端判定 */
   const [mobileUI, setMobileUI] = useState(false)
@@ -346,11 +490,12 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
     return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
 
-  /* 游戏核心状态 */
+  /* 游戏核心状态：初始位置位于 28 × 16 棋盘中心靠左 */
   const [snake, setSnake] = useState<Point[]>([
-    { x: 10, y: 10 },
-    { x: 9, y: 10 },
-    { x: 8, y: 10 },
+    { x: 14, y: 8 },
+    { x: 13, y: 8 },
+    { x: 12, y: 8 },
+    { x: 11, y: 8 },
   ])
   const [dir, setDir] = useState<Direction>('RIGHT')
   const nextDirRef = useRef<Direction>('RIGHT')
@@ -404,18 +549,22 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
     return 1.0
   }, [combo])
 
-  /* 生成随机空闲格子位置 */
+  /* 生成随机空闲格子位置（避开摇杆与冲刺按钮 HUD 触控盲区） */
   const getFreeCell = useCallback((occupied: Point[]): Point => {
     const occSet = new Set(occupied.map((p) => `${p.x},${p.y}`))
     const freeCells: Point[] = []
-    for (let x = 1; x < GRID_SIZE - 1; x++) {
-      for (let y = 1; y < GRID_SIZE - 1; y++) {
+    for (let x = 1; x < GRID_COLS - 1; x++) {
+      for (let y = 1; y < GRID_ROWS - 1; y++) {
+        // 避开左下角摇杆（x<=4, y>=11）和右下角冲刺区（x>=23, y>=11），防止生成在拇指触控盲区
+        if ((x <= 4 && y >= 11) || (x >= 23 && y >= 11)) {
+          continue
+        }
         if (!occSet.has(`${x},${y}`)) {
           freeCells.push({ x, y })
         }
       }
     }
-    if (freeCells.length === 0) return { x: 5, y: 5 }
+    if (freeCells.length === 0) return { x: 14, y: 8 }
     return freeCells[Math.floor(Math.random() * freeCells.length)]
   }, [])
 
@@ -436,9 +585,10 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
   /* 重置开始游戏 */
   const startNewGame = useCallback(() => {
     setSnake([
-      { x: 10, y: 10 },
-      { x: 9, y: 10 },
-      { x: 8, y: 10 },
+      { x: 14, y: 8 },
+      { x: 13, y: 8 },
+      { x: 12, y: 8 },
+      { x: 11, y: 8 },
     ])
     setDir('RIGHT')
     nextDirRef.current = 'RIGHT'
@@ -586,13 +736,13 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
 
         // 碰撞判定：撞墙或撞到身体
         const hitWall =
-          newHead.x < 0 || newHead.x >= GRID_SIZE || newHead.y < 0 || newHead.y >= GRID_SIZE
+          newHead.x < 0 || newHead.x >= GRID_COLS || newHead.y < 0 || newHead.y >= GRID_ROWS
         const hitSelf = curSnake.slice(1).some((seg) => seg.x === newHead.x && seg.y === newHead.y)
 
         if (hitWall || hitSelf) {
           if (boostTime > 0) {
-            newHead.x = (newHead.x + GRID_SIZE) % GRID_SIZE
-            newHead.y = (newHead.y + GRID_SIZE) % GRID_SIZE
+            newHead.x = (newHead.x + GRID_COLS) % GRID_COLS
+            newHead.y = (newHead.y + GRID_ROWS) % GRID_ROWS
           } else {
             audio.playLose()
             setLives((l) => {
@@ -774,13 +924,18 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
   }
 
   /* ───────────────────────────────────────────────────────────
-     横屏游戏主界面（双拇指掌机手游布局）
+     横屏游戏主界面（28 × 16 黄金宽屏战场 + 悬浮 HUD 掌机手游布局）
      ─────────────────────────────────────────────────────────── */
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-[#071109] text-white select-none touch-none overflow-hidden overscroll-none">
+    <div
+      className={cn(
+        'fixed inset-0 z-40 flex flex-col text-white select-none touch-none overflow-hidden overscroll-none bg-gradient-to-b transition-colors duration-500',
+        mapTheme.pageBgGradient,
+      )}
+    >
       {/* 顶部紧凑状态栏（节省高度） */}
-      <header className="h-9 shrink-0 border-b border-white/10 bg-black/50 px-3 flex items-center justify-between backdrop-blur-md z-30">
-        {/* 左侧：返回 + 换皮肤 + 音效 */}
+      <header className="h-9 shrink-0 border-b border-white/10 bg-black/60 px-3 flex items-center justify-between backdrop-blur-md z-30">
+        {/* 左侧：返回 + 换装 + 音效 */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={onBack}
@@ -801,13 +956,19 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
           <MusicToggle />
         </div>
 
-        {/* 中间：标题与得分 */}
+        {/* 中间：标题、得分与地图主题切换丸 */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <h1 className="hidden md:inline font-display text-sm font-extrabold text-amber-300 tracking-wide">
-            星愿花园 · 萌藤贪吃蛇
+          <h1 className={cn('hidden md:inline font-display text-sm font-extrabold tracking-wide', mapTheme.headerTitleColor)}>
+            萌藤贪吃蛇
           </h1>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <span className="rounded-lg bg-black/60 px-2.5 py-0.5 text-xs font-black text-amber-300 border border-amber-400/30 tabular-nums">
+            <span
+              className={cn(
+                'rounded-lg bg-black/60 px-2.5 py-0.5 text-xs font-black border tabular-nums',
+                mapTheme.scorePillBorder,
+                mapTheme.scorePillText,
+              )}
+            >
               得分 {score}
             </span>
             <span className="rounded-lg bg-black/40 px-2.5 py-0.5 text-xs font-bold text-slate-400 tabular-nums">
@@ -819,6 +980,29 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
                 {comboMultiplier}x
               </span>
             )}
+
+            {/* 地图主题快捷切换丸 */}
+            <div className="hidden sm:flex items-center rounded-full bg-black/50 p-0.5 border border-white/10 text-[10px]">
+              {(['classic', 'qixi', 'autumn'] as SiteTheme[]).map((tid) => {
+                const t = SNAKE_MAP_THEMES[tid]
+                const isCur = activeThemeId === tid
+                return (
+                  <button
+                    key={tid}
+                    type="button"
+                    onClick={() => setActiveThemeId(tid)}
+                    className={cn(
+                      'px-2 py-0.5 rounded-full transition font-bold flex items-center gap-0.5',
+                      isCur ? 'bg-white/20 text-white shadow-xs' : 'text-slate-400 hover:text-white',
+                    )}
+                    title={`地图主题：${t.name}`}
+                  >
+                    <span>{t.icon}</span>
+                    <span className="hidden lg:inline">{t.name}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 
@@ -852,293 +1036,297 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
       </header>
 
       {/* ───────────────────────────────────────────────────────────
-          横屏主舞台：左手摇杆 + 中间超大草坪 + 右手冲刺
+          横屏主舞台：28 × 16 黄金宽屏极限草坪战场（告别狭窄中间方块）
           ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-between px-2 sm:px-4 py-0.5 overflow-hidden gap-1 sm:gap-4">
-        {/* 左侧区域：屏幕虚拟摇杆 */}
-        <div className="flex-1 flex flex-col items-center justify-center max-w-[200px]">
-          <VirtualJoystick onDirection={handleJoystickDirection} currentDir={dir} />
-          <span className="mt-1 text-[10px] text-muted-foreground/60 hidden sm:inline">
-            或键盘 WASD / 方向键
-          </span>
-        </div>
-
-        {/* 中间核心：自适应超大 20 × 20 像素草坪棋盘（iPhone 17 横屏极限撑满） */}
-        <div className="flex shrink-0 items-center justify-center h-full py-0.5">
-          <div className="relative aspect-square h-[calc(100dvh-2.6rem)] max-h-[min(88vw,88vh,720px)] rounded-2xl sm:rounded-3xl border-4 border-[#2d3a22] bg-[#18291e] shadow-2xl overflow-hidden">
-            {/* 网格草坪地砖 */}
-            <div
-              className="grid size-full"
-              style={{
-                gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
-                gridTemplateRows: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
-              }}
-            >
-              {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, idx) => {
-                const x = idx % GRID_SIZE
-                const y = Math.floor(idx / GRID_SIZE)
-                const isAlt = (x + y) % 2 === 0
-                return (
-                  <div
-                    key={idx}
-                    className={`size-full transition-colors ${
-                      isAlt ? 'bg-lawn opacity-90' : 'bg-lawn-alt opacity-90'
-                    }`}
-                  />
-                )
-              })}
-            </div>
-
-            {/* 食物渲染 */}
-            {foods.map((food) => {
-              const leftPct = (food.x / GRID_SIZE) * 100
-              const topPct = (food.y / GRID_SIZE) * 100
-              const unitPct = 100 / GRID_SIZE
-
-              return (
-                <div
-                  key={food.id}
-                  className="absolute flex items-center justify-center animate-pulse"
-                  style={{
-                    left: `${leftPct}%`,
-                    top: `${topPct}%`,
-                    width: `${unitPct}%`,
-                    height: `${unitPct}%`,
-                  }}
-                >
-                  {food.type === 'sun' && (
-                    <SunSprite className="size-full drop-shadow-[0_0_8px_rgba(255,230,0,0.8)]" />
-                  )}
-                  {food.type === 'cherry' && (
-                    <PlantSprite id="cherry" className="size-full drop-shadow" />
-                  )}
-                  {food.type === 'freeze' && (
-                    <div className="size-5 rounded-full bg-cyan-300 shadow-[0_0_10px_#38bdf8] border-2 border-white flex items-center justify-center text-[9px] font-black text-blue-900">
-                      ❄
-                    </div>
-                  )}
-                  {food.type === 'jalapeno' && (
-                    <div className="size-5 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e] border-2 border-amber-300 flex items-center justify-center text-[10px]">
-                      🌶
-                    </div>
-                  )}
-                  {food.type === 'magnet' && (
-                    <div className="size-5 rounded-full bg-purple-600 shadow-[0_0_10px_#a855f7] border-2 border-white flex items-center justify-center text-[9px]">
-                      <Magnet className="size-3 text-white" />
-                    </div>
-                  )}
-                  {food.type === 'zombie' && (
-                    <div className="size-6 scale-110">
-                      <ZombieSprite id="imp" className="size-full anim-shamble" />
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-
-            {/* 贪吃蛇身体与头部 */}
-            {snake.map((seg, idx) => {
-              const isHead = idx === 0
-              const isTail = idx === snake.length - 1
-              const leftPct = (seg.x / GRID_SIZE) * 100
-              const topPct = (seg.y / GRID_SIZE) * 100
-              const unitPct = 100 / GRID_SIZE
-
+      <div className="flex-1 flex items-center justify-center p-1 sm:p-2 overflow-hidden w-full relative">
+        {/* 宽屏草坪棋盘：7:4 比例，横屏极限铺开 */}
+        <div
+          className={cn(
+            'relative aspect-[28/16] h-[calc(100dvh-2.8rem)] max-h-[min(98vw,88vh,720px)] w-full max-w-[min(98vw,calc((100dvh-2.8rem)*1.75))] rounded-2xl sm:rounded-3xl border-4 overflow-hidden select-none transition-colors duration-500',
+            mapTheme.boardBorder,
+            mapTheme.boardBg,
+            mapTheme.boardGlow,
+          )}
+        >
+          {/* 网格草坪地砖 */}
+          <div
+            className="grid size-full"
+            style={{
+              gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${GRID_ROWS}, minmax(0, 1fr))`,
+            }}
+          >
+            {Array.from({ length: GRID_COLS * GRID_ROWS }).map((_, idx) => {
+              const x = idx % GRID_COLS
+              const y = Math.floor(idx / GRID_COLS)
+              const isAlt = (x + y) % 2 === 0
               return (
                 <div
                   key={idx}
-                  className="absolute flex items-center justify-center transition-all duration-75"
-                  style={{
-                    left: `${leftPct}%`,
-                    top: `${topPct}%`,
-                    width: `${unitPct}%`,
-                    height: `${unitPct}%`,
-                    zIndex: isHead ? 30 : 20 - Math.min(10, idx),
-                  }}
-                >
-                  {isHead ? (
-                    <div
-                      className="relative size-[94%] rounded-full border-[2.6px] border-[#2d3a22] shadow-md flex items-center justify-center"
-                      style={{
-                        backgroundColor: skin.color,
-                        boxShadow: boostTime > 0 ? '0 0 14px #f43f5e' : 'none',
-                      }}
-                    >
-                      {/* 头顶花蕊 */}
-                      <span className="absolute -top-1.5 size-2 rounded-full bg-amber-300 border border-[#2d3a22]" />
-
-                      {/* 大眼灵动高光 */}
-                      <div className="flex gap-1.5">
-                        <span className="relative size-2 rounded-full bg-white border border-[#2d3a22]">
-                          <span
-                            className="absolute size-1 rounded-full bg-black"
-                            style={{
-                              top: dir === 'UP' ? 0 : dir === 'DOWN' ? 3 : 1,
-                              left: dir === 'LEFT' ? 0 : dir === 'RIGHT' ? 3 : 1,
-                            }}
-                          />
-                        </span>
-                        <span className="relative size-2 rounded-full bg-white border border-[#2d3a22]">
-                          <span
-                            className="absolute size-1 rounded-full bg-black"
-                            style={{
-                              top: dir === 'UP' ? 0 : dir === 'DOWN' ? 3 : 1,
-                              left: dir === 'LEFT' ? 0 : dir === 'RIGHT' ? 3 : 1,
-                            }}
-                          />
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="size-[84%] rounded-full border-[2px] border-[#2d3a22] flex items-center justify-center shadow-sm"
-                      style={{
-                        backgroundColor: idx % 2 === 0 ? skin.bodyColor : skin.color,
-                        transform: `scale(${isTail ? 0.75 : 1})`,
-                      }}
-                    >
-                      {idx % 4 === 0 && (
-                        <span className="size-1 rounded-full bg-amber-300 opacity-80" />
-                      )}
-                    </div>
+                  className={cn(
+                    'size-full transition-colors duration-500',
+                    isAlt ? mapTheme.tileEven : mapTheme.tileOdd,
                   )}
-                </div>
+                />
               )
             })}
+          </div>
 
-            {/* 飘字特效层 */}
-            {popups.map((p) => (
-              <span
-                key={p.id}
-                className="absolute font-display text-xs font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] animate-bounce pointer-events-none"
+          {/* 食物渲染 */}
+          {foods.map((food) => {
+            const leftPct = (food.x / GRID_COLS) * 100
+            const topPct = (food.y / GRID_ROWS) * 100
+            const unitWidthPct = 100 / GRID_COLS
+            const unitHeightPct = 100 / GRID_ROWS
+
+            return (
+              <div
+                key={food.id}
+                className="absolute flex items-center justify-center animate-pulse"
                 style={{
-                  left: `${(p.x / GRID_SIZE) * 100}%`,
-                  top: `${(p.y / GRID_SIZE) * 100}%`,
-                  color: p.color,
+                  left: `${leftPct}%`,
+                  top: `${topPct}%`,
+                  width: `${unitWidthPct}%`,
+                  height: `${unitHeightPct}%`,
                 }}
               >
-                {p.text}
-              </span>
-            ))}
-
-            {/* 达成挑战提示 */}
-            {missionCompletePopup && (
-              <div className="absolute inset-x-0 top-3 z-40 text-center animate-bounce pointer-events-none">
-                <span className="inline-block rounded-full border border-amber-300 bg-amber-500 px-4 py-1 font-display text-xs font-black text-slate-950 shadow-lg">
-                  {missionCompletePopup}
-                </span>
-              </div>
-            )}
-
-            {/* 游戏暂停遮罩 */}
-            {isPaused && (
-              <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-xs">
-                <div className="rounded-3xl border border-white/20 bg-slate-900/90 px-6 py-4 text-center text-white">
-                  <Pause className="size-8 mx-auto text-amber-300 mb-2" />
-                  <h3 className="font-display text-xl font-bold">游戏已暂停</h3>
-                  <button
-                    onClick={() => setIsPaused(false)}
-                    className="mt-4 rounded-full bg-primary px-6 py-2 text-xs font-extrabold text-primary-foreground transition active:scale-95"
-                  >
-                    继续冒险
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* 游戏结束结算 */}
-            {isGameOver && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                <div className="w-full max-w-sm rounded-3xl border-2 border-amber-300 bg-gradient-to-b from-[#1c2e22] to-[#0f1d14] p-5 text-center text-white shadow-2xl">
-                  <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-2xl bg-amber-400 text-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.6)]">
-                    <Trophy className="size-7" />
+                {food.type === 'sun' && (
+                  <SunSprite className="size-full drop-shadow-[0_0_8px_rgba(255,230,0,0.8)]" />
+                )}
+                {food.type === 'cherry' && (
+                  <PlantSprite id="cherry" className="size-full drop-shadow" />
+                )}
+                {food.type === 'freeze' && (
+                  <div className="size-5 rounded-full bg-cyan-300 shadow-[0_0_10px_#38bdf8] border-2 border-white flex items-center justify-center text-[9px] font-black text-blue-900">
+                    ❄
                   </div>
-                  <h3 className="font-display text-xl font-black text-amber-300">
-                    星愿冒险总结
-                  </h3>
-                  <p className="mt-0.5 text-xs text-emerald-100">小蛇在星夜草坪留下了漫天繁星！</p>
+                )}
+                {food.type === 'jalapeno' && (
+                  <div className="size-5 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e] border-2 border-amber-300 flex items-center justify-center text-[10px]">
+                    🌶
+                  </div>
+                )}
+                {food.type === 'magnet' && (
+                  <div className="size-5 rounded-full bg-purple-600 shadow-[0_0_10px_#a855f7] border-2 border-white flex items-center justify-center text-[9px]">
+                    <Magnet className="size-3 text-white" />
+                  </div>
+                )}
+                {food.type === 'zombie' && (
+                  <div className="size-6 scale-110">
+                    <ZombieSprite id="imp" className="size-full anim-shamble" />
+                  </div>
+                )}
+              </div>
+            )
+          })}
 
-                  <div className="my-3 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-black/40 p-2.5 text-center">
-                    <div>
-                      <span className="block text-[10px] text-slate-300">终局长度</span>
-                      <span className="font-display text-lg font-black text-emerald-300">
-                        {snake.length} 节
+          {/* 贪吃蛇身体与头部 */}
+          {snake.map((seg, idx) => {
+            const isHead = idx === 0
+            const isTail = idx === snake.length - 1
+            const leftPct = (seg.x / GRID_COLS) * 100
+            const topPct = (seg.y / GRID_ROWS) * 100
+            const unitWidthPct = 100 / GRID_COLS
+            const unitHeightPct = 100 / GRID_ROWS
+
+            return (
+              <div
+                key={idx}
+                className="absolute flex items-center justify-center transition-all duration-75"
+                style={{
+                  left: `${leftPct}%`,
+                  top: `${topPct}%`,
+                  width: `${unitWidthPct}%`,
+                  height: `${unitHeightPct}%`,
+                  zIndex: isHead ? 30 : 20 - Math.min(10, idx),
+                }}
+              >
+                {isHead ? (
+                  <div
+                    className="relative size-[94%] rounded-full border-[2.6px] border-[#2d3a22] shadow-md flex items-center justify-center"
+                    style={{
+                      backgroundColor: skin.color,
+                      boxShadow: boostTime > 0 ? '0 0 14px #f43f5e' : 'none',
+                    }}
+                  >
+                    {/* 头顶花蕊 */}
+                    <span className="absolute -top-1.5 size-2 rounded-full bg-amber-300 border border-[#2d3a22]" />
+
+                    {/* 大眼灵动高光 */}
+                    <div className="flex gap-1.5">
+                      <span className="relative size-2 rounded-full bg-white border border-[#2d3a22]">
+                        <span
+                          className="absolute size-1 rounded-full bg-black"
+                          style={{
+                            top: dir === 'UP' ? 0 : dir === 'DOWN' ? 3 : 1,
+                            left: dir === 'LEFT' ? 0 : dir === 'RIGHT' ? 3 : 1,
+                          }}
+                        />
+                      </span>
+                      <span className="relative size-2 rounded-full bg-white border border-[#2d3a22]">
+                        <span
+                          className="absolute size-1 rounded-full bg-black"
+                          style={{
+                            top: dir === 'UP' ? 0 : dir === 'DOWN' ? 3 : 1,
+                            left: dir === 'LEFT' ? 0 : dir === 'RIGHT' ? 3 : 1,
+                          }}
+                        />
                       </span>
                     </div>
-                    <div>
-                      <span className="block text-[10px] text-slate-300">本次得分</span>
-                      <span className="font-display text-lg font-black text-amber-300">{score}</span>
-                    </div>
+
+                    {/* 微笑嘴巴 */}
+                    <span className="absolute bottom-1 h-0.5 w-2 rounded-full bg-[#2d3a22]" />
                   </div>
-
-                  <button
-                    onClick={startNewGame}
-                    className="w-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 py-2.5 font-display text-sm font-extrabold text-slate-950 shadow transition hover:-translate-y-0.5 active:translate-y-0"
+                ) : (
+                  <div
+                    className="size-[84%] rounded-full border-[2px] border-[#2d3a22] flex items-center justify-center shadow-xs"
+                    style={{
+                      backgroundColor: idx % 2 === 0 ? skin.bodyColor : skin.color,
+                      transform: `scale(${isTail ? 0.75 : 1})`,
+                    }}
                   >
-                    再来一局！
-                  </button>
-                </div>
+                    {idx % 4 === 0 && (
+                      <span className="size-1 rounded-full bg-amber-300 opacity-80" />
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            )
+          })}
 
-        {/* 右侧区域：极速冲刺大按钮 + 状态与目标 */}
-        <div className="flex-1 flex flex-col items-center justify-center gap-2 max-w-[200px]">
-          {/* 极速冲刺大按钮 */}
-          <div className="flex flex-col items-center">
+          {/* 飘字特效层 */}
+          {popups.map((p) => (
+            <span
+              key={p.id}
+              className="absolute font-display text-xs font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] animate-bounce pointer-events-none z-30"
+              style={{
+                left: `${(p.x / GRID_COLS) * 100}%`,
+                top: `${(p.y / GRID_ROWS) * 100}%`,
+                color: p.color,
+              }}
+            >
+              {p.text}
+            </span>
+          ))}
+
+          {/* 达成挑战提示 */}
+          {missionCompletePopup && (
+            <div className="absolute inset-x-0 top-3 z-40 text-center animate-bounce pointer-events-none">
+              <span className="inline-block rounded-full border border-amber-300 bg-amber-500 px-4 py-1 font-display text-xs font-black text-slate-950 shadow-lg">
+                {missionCompletePopup}
+              </span>
+            </div>
+          )}
+
+          {/* 左下角：悬浮半透明发光触控摇杆 HUD */}
+          <div className="absolute bottom-2.5 left-2.5 z-30 pointer-events-auto select-none touch-none">
+            <VirtualJoystick
+              onDirection={handleJoystickDirection}
+              currentDir={dir}
+              mapTheme={mapTheme}
+            />
+          </div>
+
+          {/* 右下角：悬浮半透明极速冲刺按钮 HUD 与状态指示 */}
+          <div className="absolute bottom-2.5 right-2.5 z-30 flex flex-col items-center gap-1 pointer-events-auto select-none touch-none">
             <button
               onPointerDown={() => setDashActive(true)}
               onPointerUp={() => setDashActive(false)}
               onPointerCancel={() => setDashActive(false)}
-              className={`size-20 sm:size-24 rounded-full border-2 flex flex-col items-center justify-center shadow-lg transition-all active:scale-95 select-none touch-none ${
+              className={cn(
+                'size-18 sm:size-22 rounded-full border-2 flex flex-col items-center justify-center shadow-lg transition-all active:scale-95 select-none touch-none backdrop-blur-md',
                 dashActive || boostTime > 0
-                  ? 'border-rose-300 bg-gradient-to-b from-rose-500 to-red-600 text-white shadow-[0_0_24px_rgba(244,63,94,0.6)] scale-105'
-                  : 'border-amber-400/50 bg-gradient-to-b from-amber-500/20 to-amber-600/35 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.2)] hover:border-amber-400'
-              }`}
+                  ? mapTheme.dashBgActive
+                  : mapTheme.dashBgNormal,
+              )}
             >
-              <Zap className={`size-7 sm:size-8 ${dashActive || boostTime > 0 ? 'animate-bounce' : ''}`} />
-              <span className="font-display text-[11px] sm:text-xs font-black mt-0.5">
-                {boostTime > 0 ? '狂暴冲刺' : '按住冲刺'}
+              <Zap className={cn('size-5 sm:size-6', (dashActive || boostTime > 0) && 'animate-bounce')} />
+              <span className="font-display text-[10px] sm:text-xs font-black mt-0.5">
+                {boostTime > 0 ? '狂暴' : '冲刺'}
               </span>
             </button>
-            <p className="mt-1 text-[10px] text-amber-200/60 font-bold">右拇指加速</p>
+
+            {/* 增益状态指示 */}
+            {(freezeTime > 0 || boostTime > 0 || magnetTime > 0) && (
+              <div className="flex flex-col gap-0.5 w-full max-w-[85px]">
+                {freezeTime > 0 && (
+                  <div className="flex items-center justify-between rounded-md bg-cyan-950/85 border border-cyan-400/40 px-1.5 py-0.5 text-[9px] text-cyan-200">
+                    <span>❄ 减速</span>
+                    <span className="font-bold">{Math.ceil(freezeTime)}s</span>
+                  </div>
+                )}
+                {boostTime > 0 && (
+                  <div className="flex items-center justify-between rounded-md bg-rose-950/85 border border-rose-400/40 px-1.5 py-0.5 text-[9px] text-rose-200">
+                    <span>🌶 狂暴</span>
+                    <span className="font-bold">{Math.ceil(boostTime)}s</span>
+                  </div>
+                )}
+                {magnetTime > 0 && (
+                  <div className="flex items-center justify-between rounded-md bg-purple-950/85 border border-purple-400/40 px-1.5 py-0.5 text-[9px] text-purple-200">
+                    <span>🧲 磁力</span>
+                    <span className="font-bold">{Math.ceil(magnetTime)}s</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 当前目标徽章 */}
+            <div className="hidden sm:flex items-center gap-1 rounded-md border border-white/10 bg-black/60 px-2 py-0.5 text-[9px] text-slate-300 backdrop-blur-xs">
+              <Award className="size-2.5 text-amber-300" />
+              <span className="truncate max-w-[90px]">{MISSIONS[curMissionIdx]?.title}</span>
+            </div>
           </div>
 
-          {/* 增益状态指示 */}
-          {(freezeTime > 0 || boostTime > 0 || magnetTime > 0) && (
-            <div className="flex flex-col gap-1 w-full max-w-[120px]">
-              {freezeTime > 0 && (
-                <div className="flex items-center justify-between rounded-lg bg-cyan-950/70 border border-cyan-400/40 px-2 py-0.5 text-[10px] text-cyan-200">
-                  <span>❄ 冰霜减速</span>
-                  <span className="font-bold">{Math.ceil(freezeTime)}s</span>
-                </div>
-              )}
-              {boostTime > 0 && (
-                <div className="flex items-center justify-between rounded-lg bg-rose-950/70 border border-rose-400/40 px-2 py-0.5 text-[10px] text-rose-200">
-                  <span>🌶 狂暴无敌</span>
-                  <span className="font-bold">{Math.ceil(boostTime)}s</span>
-                </div>
-              )}
-              {magnetTime > 0 && (
-                <div className="flex items-center justify-between rounded-lg bg-purple-950/70 border border-purple-400/40 px-2 py-0.5 text-[10px] text-purple-200">
-                  <span>🧲 磁力吸取</span>
-                  <span className="font-bold">{Math.ceil(magnetTime)}s</span>
-                </div>
-              )}
+          {/* 游戏暂停遮罩 */}
+          {isPaused && (
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-xs">
+              <div className="rounded-3xl border border-white/20 bg-slate-900/90 px-6 py-4 text-center text-white">
+                <Pause className="size-8 mx-auto text-amber-300 mb-2" />
+                <h3 className="font-display text-xl font-bold">游戏已暂停</h3>
+                <button
+                  onClick={() => setIsPaused(false)}
+                  className="mt-4 rounded-full bg-primary px-6 py-2 text-xs font-extrabold text-primary-foreground transition active:scale-95"
+                >
+                  继续冒险
+                </button>
+              </div>
             </div>
           )}
 
-          {/* 当前挑战微卡 */}
-          <div className="w-full max-w-[120px] rounded-xl border border-white/10 bg-black/40 p-2 text-[10px] text-slate-300">
-            <div className="flex items-center gap-1 font-bold text-amber-300 truncate">
-              <Award className="size-3 shrink-0" />
-              <span>{MISSIONS[curMissionIdx]?.title}</span>
+          {/* 游戏结束结算 */}
+          {isGameOver && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="w-full max-w-sm rounded-3xl border-2 border-amber-300 bg-gradient-to-b from-[#1c2e22] to-[#0f1d14] p-5 text-center text-white shadow-2xl">
+                <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-2xl bg-amber-400 text-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.6)]">
+                  <Trophy className="size-7" />
+                </div>
+                <h3 className="font-display text-xl font-black text-amber-300">
+                  萌藤冒险总结
+                </h3>
+                <p className="mt-0.5 text-xs text-emerald-100">灵动萌藤在草坪留下了漫天繁星！</p>
+
+                <div className="my-3 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-black/40 p-2.5 text-center">
+                  <div>
+                    <span className="block text-[10px] text-slate-300">终局长度</span>
+                    <span className="font-display text-lg font-black text-emerald-300">
+                      {snake.length} 节
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-300">本次得分</span>
+                    <span className="font-display text-lg font-black text-amber-300">{score}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={startNewGame}
+                  className="w-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 py-2.5 font-display text-sm font-extrabold text-slate-950 shadow transition hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  再来一局！
+                </button>
+              </div>
             </div>
-            <p className="truncate text-slate-400 text-[9px] mt-0.5">
-              目标: {MISSIONS[curMissionIdx]?.targetScore}分 / {MISSIONS[curMissionIdx]?.targetLength}节
-            </p>
-          </div>
+          )}
         </div>
       </div>
 
@@ -1178,7 +1366,7 @@ function SkinModal({ skins, selectedSkin, onSelect, onClose }: SkinModalProps) {
           <div className="flex items-center gap-2">
             <Sparkles className="size-5 text-purple-300" />
             <h3 className="font-display text-base font-black text-amber-200">
-              星愿萌藤工坊 · 选择皮肤
+              萌藤工坊 · 选择皮肤
             </h3>
           </div>
           <button

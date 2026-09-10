@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   ArrowLeft,
+  ChevronDown,
   ChevronRight,
   Clock,
   Crown,
@@ -34,8 +35,10 @@ import { cn } from '@/lib/utils'
 
 interface AdminPanelProps {
   onBack: () => void
-  /** 七夕主题开关变化后回调（让全局立即换装） */
+  /** 全站主题开关变化后回调 */
   onFestivalChanged?: () => void
+  currentTheme?: SiteTheme
+  onThemeChange?: (theme: SiteTheme) => void
 }
 
 /** 秒数格式化为 mm:ss */
@@ -61,7 +64,12 @@ function fmtDate(ms?: number): string {
   }
 }
 
-export function AdminPanel({ onBack, onFestivalChanged }: AdminPanelProps) {
+export function AdminPanel({
+  onBack,
+  onFestivalChanged,
+  currentTheme,
+  onThemeChange,
+}: AdminPanelProps) {
   const [users, setUsers] = useState<AdminUserSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -121,7 +129,11 @@ export function AdminPanel({ onBack, onFestivalChanged }: AdminPanelProps) {
 
       <DataManagement users={users} onChanged={refresh} />
 
-      <ThemeManagementSection onChanged={onFestivalChanged} />
+      <ThemeManagementSection
+        currentThemeProp={currentTheme}
+        onThemeChangeProp={onThemeChange}
+        onChanged={onFestivalChanged}
+      />
 
       {error && (
         <div className="mb-4 rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-sm text-red-600">
@@ -299,19 +311,31 @@ function DataManagement({ users, onChanged }: { users: AdminUserSummary[]; onCha
   )
 }
 
-/* ── 全站主题管理 ── */
-function ThemeManagementSection({ onChanged }: { onChanged?: () => void }) {
-  const [currentTheme, setCurrentTheme] = useState<SiteTheme | null>(null)
+/* ── 全站主题管理（默认收起折叠面板） ── */
+function ThemeManagementSection({
+  currentThemeProp,
+  onThemeChangeProp,
+  onChanged,
+}: {
+  currentThemeProp?: SiteTheme
+  onThemeChangeProp?: (theme: SiteTheme) => void
+  onChanged?: () => void
+}) {
+  const [currentTheme, setCurrentTheme] = useState<SiteTheme>(() => currentThemeProp ?? 'classic')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (currentThemeProp) setCurrentTheme(currentThemeProp)
+  }, [currentThemeProp])
 
   useEffect(() => {
     let cancelled = false
     getFestivalConfig()
       .then((c) => {
         if (!cancelled) {
-          if (c.theme) setCurrentTheme(c.theme)
-          else setCurrentTheme(c.qixi ? 'qixi' : 'classic')
+          const t = c.theme ?? (c.qixi ? 'qixi' : 'classic')
+          setCurrentTheme(t)
         }
       })
       .catch((e) => {
@@ -321,21 +345,6 @@ function ThemeManagementSection({ onChanged }: { onChanged?: () => void }) {
       cancelled = true
     }
   }, [])
-
-  const handleSelectTheme = async (theme: SiteTheme) => {
-    if (currentTheme === theme || busy) return
-    setBusy(true)
-    setError(null)
-    try {
-      const c = await adminSetTheme(theme)
-      setCurrentTheme(c.theme ?? (c.qixi ? 'qixi' : 'classic'))
-      onChanged?.()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '切换主题失败')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   const THEMES: { id: SiteTheme; name: string; tag: string; desc: string; icon: string; colors: string[] }[] = [
     {
@@ -364,71 +373,104 @@ function ThemeManagementSection({ onChanged }: { onChanged?: () => void }) {
     },
   ]
 
+  const handleSelectTheme = async (theme: SiteTheme) => {
+    if (currentTheme === theme || busy) return
+    // 立即乐观切换前端主题，保证视觉毫秒级响应
+    setCurrentTheme(theme)
+    onThemeChangeProp?.(theme)
+    setBusy(true)
+    setError(null)
+    try {
+      const c = await adminSetTheme(theme)
+      const confirmed = c.theme ?? (c.qixi ? 'qixi' : theme)
+      setCurrentTheme(confirmed)
+      if (confirmed !== theme) {
+        onThemeChangeProp?.(confirmed)
+      }
+      onChanged?.()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '切换主题失败')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const activeThemeItem = THEMES.find((t) => t.id === currentTheme) ?? THEMES[0]
+
   return (
-    <section className="mb-5 rounded-3xl border-2 border-border bg-card p-4 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Sparkles className="size-4 text-primary" aria-hidden="true" />
-        <h3 className="font-display text-sm font-extrabold text-foreground">全站主题管理</h3>
-        <span className="ml-auto rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
-          实时全员生效
-        </span>
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-        可一键切换全站视觉风格与节日氛围，其他设备重新进入或刷新后同步展现。
-      </p>
+    <details className="mb-5 rounded-3xl border-2 border-border bg-card p-4 shadow-sm group">
+      <summary className="cursor-pointer flex items-center justify-between font-display text-sm font-extrabold text-foreground select-none list-none [&::-webkit-details-marker]:hidden">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" aria-hidden="true" />
+          <span>全站主题管理</span>
+          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-bold text-primary">
+            当前：{activeThemeItem.icon} {activeThemeItem.name}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 text-xs font-bold text-muted-foreground group-hover:text-foreground transition-colors">
+          <span>切换主题 ({THEMES.length}款)</span>
+          <ChevronDown className="size-4 transition-transform duration-200 group-open:rotate-180" />
+        </div>
+      </summary>
 
-      <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
-        {THEMES.map((item) => {
-          const isActive = currentTheme === item.id
-          return (
-            <div
-              key={item.id}
-              onClick={() => handleSelectTheme(item.id)}
-              className={cn(
-                'cursor-pointer rounded-2xl border-2 p-3 transition-all relative select-none',
-                isActive
-                  ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary'
-                  : 'border-border bg-background hover:border-primary/50',
-                busy && 'opacity-60 pointer-events-none',
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 font-display text-sm font-bold">
-                  <span>{item.icon}</span>
-                  <span>{item.name}</span>
-                </div>
-                {isActive ? (
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-primary-foreground">
-                    生效中
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-medium text-muted-foreground">
-                    {item.tag}
-                  </span>
+      <div className="mt-3 pt-3 border-t border-border">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          可一键切换全站视觉风格与节日氛围，其他设备重新进入或刷新后同步展现。
+        </p>
+
+        <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
+          {THEMES.map((item) => {
+            const isActive = currentTheme === item.id
+            return (
+              <div
+                key={item.id}
+                onClick={() => handleSelectTheme(item.id)}
+                className={cn(
+                  'cursor-pointer rounded-2xl border-2 p-3 transition-all relative select-none',
+                  isActive
+                    ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary'
+                    : 'border-border bg-background hover:border-primary/50',
+                  busy && 'opacity-60 pointer-events-none',
                 )}
-              </div>
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-display text-sm font-bold">
+                    <span>{item.icon}</span>
+                    <span>{item.name}</span>
+                  </div>
+                  {isActive ? (
+                    <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-primary-foreground">
+                      生效中
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      {item.tag}
+                    </span>
+                  )}
+                </div>
 
-              {/* 色条 */}
-              <div className="my-2 flex gap-1.5">
-                {item.colors.map((c, i) => (
-                  <span
-                    key={i}
-                    className="h-2 flex-1 rounded-full shadow-xs"
-                    style={{ backgroundColor: c }}
-                  />
-                ))}
-              </div>
+                {/* 色条 */}
+                <div className="my-2 flex gap-1.5">
+                  {item.colors.map((c, i) => (
+                    <span
+                      key={i}
+                      className="h-2 flex-1 rounded-full shadow-xs"
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
 
-              <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
-                {item.desc}
-              </p>
-            </div>
-          )
-        })}
+                <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
+                  {item.desc}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+
+        {error && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
       </div>
-
-      {error && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
-    </section>
+    </details>
   )
 }
 

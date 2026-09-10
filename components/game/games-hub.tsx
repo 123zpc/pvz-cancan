@@ -19,7 +19,7 @@ interface GamesHubProps {
   m3Unlocked: number
   m3Cleared: number[]
   m3Total: number
-  /** 星愿花园本地最高分 */
+  /** 萌藤贪吃蛇本地最高分 */
   starlightBestScore: number
 }
 
@@ -108,7 +108,7 @@ export function GamesHub({
         </li>
         <li className="sm:col-span-2">
           <GameCard
-            title="星愿花园 · 萌藤贪吃蛇"
+            title="萌藤贪吃蛇"
             subtitle="灵动藤蔓，吞食阳光与暗影"
             icon={<Sparkles className="size-5" />}
             cleared={starlightBestScore > 0 ? 1 : 0}

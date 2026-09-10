@@ -43,7 +43,7 @@ public class ProgressService {
   public synchronized void save(String userId, Progress progress) {
     Progress merged = mergeForPlayer(get(userId), progress);
     redisTemplate.opsForValue().set(PROGRESS_PREFIX + userId, merged);
-    log.info("用户 {} 进度已保存：主游戏 unlocked={}, cleared={}；消消乐 m3Unlocked={}, m3Cleared={}；星愿花园最高分={}",
+    log.info("用户 {} 进度已保存：主游戏 unlocked={}, cleared={}；消消乐 m3Unlocked={}, m3Cleared={}；萌藤贪吃蛇最高分={}",
         userId, merged.getUnlocked(), merged.getCleared(),
         merged.getM3Unlocked(), merged.getM3Cleared(), merged.getStarlightBestScore());
   }

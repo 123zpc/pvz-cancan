@@ -49,7 +49,7 @@ const MUSIC_TRACKS: Record<MusicType, { src: string; volume: number }> = {
   night: { src: '/music/battle-night.mp3', volume: 0.5 },
   /** 消消乐：Summer (Tropicala) */
   match3: { src: '/music/match3.mp3', volume: 0.5 },
-  /** 星愿花园：Dance Of The Moonlight Jellies */
+  /** 萌藤贪吃蛇：Dance Of The Moonlight Jellies */
   garden: { src: '/music/starlight-garden.mp3', volume: 0.55 },
 }
 

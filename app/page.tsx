@@ -104,7 +104,7 @@ export default function Page() {
   const [levelBestTimes, setLevelBestTimes] = useState<Record<number, number>>({})
   /** 消消乐每关最佳通关用时 */
   const [m3LevelBestTimes, setM3LevelBestTimes] = useState<Record<number, number>>({})
-  /** 星愿花园历史最高分：随 Progress 写入后端，离线时保留在本地兜底。 */
+  /** 萌藤贪吃蛇历史最高分：随 Progress 写入后端，离线时保留在本地兜底。 */
   const [starlightBestScore, setStarlightBestScore] = useState(0)
   /** 客户端挂载标记，防止 SSR 与客户端首屏 Hydration 不匹配 */
   const [mounted, setMounted] = useState(false)
@@ -385,6 +385,7 @@ export default function Page() {
         onBack={() => setView('games')}
         bestScore={starlightBestScore}
         onBestScore={setStarlightBestScore}
+        theme={siteTheme}
       />
     )
   }
@@ -410,7 +411,12 @@ export default function Page() {
     return (
       <>
         <ThemeDecor />
-        <AdminPanel onBack={() => setView('menu')} onFestivalChanged={fetchFestival} />
+        <AdminPanel
+          onBack={() => setView('menu')}
+          onFestivalChanged={fetchFestival}
+          currentTheme={siteTheme}
+          onThemeChange={applyTheme}
+        />
       </>
     )
   }
