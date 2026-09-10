@@ -119,6 +119,32 @@ export default function Page() {
     setSiteTheme(loadThemeCache())
   }, [])
 
+  // 全局防御：禁止游戏内任何元素被选中文本、复制与长按呼出原生操作菜单（针对 iOS Safari，放行输入框）
+  useEffect(() => {
+    const handlePrevent = (e: Event) => {
+      const target = e.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return
+      }
+      e.preventDefault()
+    }
+
+    window.addEventListener('selectstart', handlePrevent)
+    window.addEventListener('contextmenu', handlePrevent)
+    window.addEventListener('copy', handlePrevent)
+
+    return () => {
+      window.removeEventListener('selectstart', handlePrevent)
+      window.removeEventListener('contextmenu', handlePrevent)
+      window.removeEventListener('copy', handlePrevent)
+    }
+  }, [])
+
   /** 同步全站主题：写状态 + 本地缓存 + html 属性 */
   const applyTheme = useCallback((theme: SiteTheme) => {
     setSiteTheme(theme)
