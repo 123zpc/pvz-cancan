@@ -109,11 +109,18 @@ export function AdminPanel({ onBack, onFestivalChanged }: AdminPanelProps) {
       </header>
 
       {/* 摘要卡 */}
-      <section className="mb-5 grid grid-cols-2 gap-3">
+      <section className="mb-5 grid grid-cols-3 gap-2.5">
         <StatCard label="用户总数" value={users.length.toString()} />
         <StatCard
           label="累计在线时长"
           value={fmtTime(users.reduce((s, u) => s + (u.totalPlayTimeSec ?? 0), 0))}
+        />
+        <StatCard
+          label="贪吃蛇最高纪录"
+          value={(() => {
+            const top = users.reduce((m, u) => Math.max(m, u.starlightBestScore || 0), 0)
+            return top > 0 ? `${top}分` : '0分'
+          })()}
         />
       </section>
 
@@ -370,9 +377,20 @@ function FestivalSection({ onChanged }: { onChanged?: () => void }) {
   )
 }
 
+export function getSnakeRank(score: number): string {
+  if (score >= 3000) return '极光通天龙 🌟'
+  if (score >= 1500) return '繁花巨藤 🌸'
+  if (score >= 800) return '灵动藤苗 🌿'
+  if (score >= 300) return '破土嫩芽 🌱'
+  if (score > 0) return '初探草坪 🍀'
+  return '未入驻 🍃'
+}
+
 function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void }) {
   const pvzTotal = LEVELS.length
   const m3Total = MATCH3_LEVELS.length
+  const snakeScore = user.starlightBestScore || 0
+
   return (
     <button
       type="button"
@@ -391,16 +409,18 @@ function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void
             <span className="mx-1 opacity-50">·</span>
             最近 {fmtDate(user.lastPlayedAt)}
           </p>
-          <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-violet-500">
-            <Sparkles className="size-3" aria-hidden="true" />
-            星愿花园最高星光 {user.starlightBestScore || '—'}
-          </p>
         </div>
-        <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
+            <Sparkles className="size-3" aria-hidden="true" />
+            贪吃蛇 {snakeScore > 0 ? `${snakeScore}分` : '未游玩'}
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+        </div>
       </div>
 
-      {/* 进度条 */}
-      <div className="mt-3 grid grid-cols-2 gap-3">
+      {/* 三大游戏模块进度 */}
+      <div className="mt-3 grid grid-cols-3 gap-2">
         <ProgressMini
           label="主游戏"
           unlocked={user.unlocked}
@@ -413,6 +433,23 @@ function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void
           cleared={user.m3ClearedCount}
           total={m3Total}
         />
+        <div className="flex flex-col justify-between rounded-xl bg-secondary/50 p-2 text-xs">
+          <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+            <span>萌藤贪吃蛇</span>
+            <span className={snakeScore > 0 ? 'font-extrabold text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}>
+              {snakeScore > 0 ? '已入驻' : '未游玩'}
+            </span>
+          </div>
+          <div className="my-1">
+            <span className="font-display text-sm font-extrabold tabular-nums text-foreground">
+              {snakeScore}
+            </span>
+            <span className="ml-0.5 text-[10px] text-muted-foreground">分</span>
+          </div>
+          <p className="truncate text-[10px] font-medium text-muted-foreground">
+            {getSnakeRank(snakeScore)}
+          </p>
+        </div>
       </div>
     </button>
   )
@@ -453,7 +490,7 @@ function EditDialog({
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<'pvz' | 'm3'>('pvz')
+  const [tab, setTab] = useState<'pvz' | 'm3' | 'snake'>('pvz')
 
   // 加载完整进度
   useEffect(() => {
@@ -527,15 +564,25 @@ function EditDialog({
                 <TabButton active={tab === 'm3'} onClick={() => setTab('m3')}>
                   消消乐
                 </TabButton>
+                <TabButton active={tab === 'snake'} onClick={() => setTab('snake')}>
+                  萌藤贪吃蛇
+                </TabButton>
               </div>
 
-              {tab === 'pvz' ? (
+              {tab === 'pvz' && (
                 <PvzEditor
                   progress={progress}
                   onChange={setProgress}
                 />
-              ) : (
+              )}
+              {tab === 'm3' && (
                 <Match3Editor
+                  progress={progress}
+                  onChange={setProgress}
+                />
+              )}
+              {tab === 'snake' && (
+                <SnakeEditor
                   progress={progress}
                   onChange={setProgress}
                 />
@@ -757,3 +804,97 @@ function Match3Editor({ progress, onChange }: { progress: Progress; onChange: (p
     </div>
   )
 }
+
+/* ── 萌藤贪吃蛇编辑 ── */
+function SnakeEditor({ progress, onChange }: { progress: Progress; onChange: (p: Progress) => void }) {
+  const score = progress.starlightBestScore ?? 0
+
+  const setScore = (v: number) => {
+    onChange({ ...progress, starlightBestScore: Math.max(0, Math.floor(v)) })
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* 荣誉概览卡 */}
+      <div className="rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 p-4 text-center">
+        <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+          <Sparkles className="size-6" />
+        </div>
+        <h4 className="font-display text-base font-extrabold text-foreground">
+          萌藤贪吃蛇 · 历史最高记录
+        </h4>
+        <div className="mt-1 flex items-baseline justify-center gap-1">
+          <span className="font-display text-3xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">
+            {score}
+          </span>
+          <span className="text-xs font-bold text-muted-foreground">分</span>
+        </div>
+        <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-extrabold text-secondary-foreground">
+          当前段位：{getSnakeRank(score)}
+        </div>
+      </div>
+
+      {/* 修改分值 */}
+      <div className="rounded-2xl border-2 border-border bg-card p-4">
+        <label className="mb-2 block text-xs font-bold text-muted-foreground">
+          修改贪吃蛇最高得分（输入或快捷增减）
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min={0}
+            value={score}
+            onChange={(e) => setScore(Number(e.target.value) || 0)}
+            className="flex-1 rounded-xl border border-border bg-background px-3 py-2 font-display text-base font-bold tabular-nums outline-none focus:border-primary"
+            placeholder="输入分值"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setScore(0)}
+            className="rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10"
+          >
+            清零
+          </Button>
+        </div>
+
+        {/* 快捷增减分值按钮 */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setScore(score + 100)}
+            className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground transition active:scale-95"
+          >
+            +100 分
+          </button>
+          <button
+            type="button"
+            onClick={() => setScore(score + 500)}
+            className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground transition active:scale-95"
+          >
+            +500 分
+          </button>
+          <button
+            type="button"
+            onClick={() => setScore(score + 1000)}
+            className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground transition active:scale-95"
+          >
+            +1000 分
+          </button>
+          <button
+            type="button"
+            onClick={() => setScore(2025)}
+            className="rounded-xl bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground transition active:scale-95"
+          >
+            设为 2025 分
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          点击下方“保存”写入 Redis，用户重新进入或刷新即可同步最新纪录。
+        </p>
+      </div>
+    </div>
+  )
+}
+

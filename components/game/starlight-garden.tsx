@@ -10,12 +10,15 @@ import {
   Flame,
   Heart,
   Magnet,
+  Maximize,
+  Minimize,
   Pause,
   Play,
   RotateCcw,
   Sparkles,
   Sun,
   Trophy,
+  X,
   Zap,
 } from 'lucide-react'
 import { PlantSprite, ZombieSprite, SunSprite } from './sprites'
@@ -48,7 +51,7 @@ interface FoodItem {
   x: number
   y: number
   type: FoodType
-  life: number // 剩余秒数（针对特殊食物）
+  life: number // 剩余秒数
 }
 
 type SnakeSkin = 'sprout' | 'frost' | 'cherry' | 'star'
@@ -113,20 +116,235 @@ interface Mission {
 }
 
 const MISSIONS: Mission[] = [
-  { id: 1, title: '初萌生息', desc: '藤蔓长度达到 8 节，收集 50 点阳光', targetScore: 100, targetLength: 8, rewardBonus: 150 },
-  { id: 2, title: '双倍快乐', desc: '吞食双子樱桃，长度达到 14 节', targetScore: 260, targetLength: 14, rewardBonus: 250 },
+  { id: 1, title: '初萌生息', desc: '藤蔓长度达 8 节，收集 50 点阳光', targetScore: 100, targetLength: 8, rewardBonus: 150 },
+  { id: 2, title: '双倍快乐', desc: '吞食双子樱桃，长度达 14 节', targetScore: 260, targetLength: 14, rewardBonus: 250 },
   { id: 3, title: '狂暴突进', desc: '吃下辣椒冲刺，得分突破 500 分', targetScore: 500, targetLength: 18, rewardBonus: 400 },
   { id: 4, title: '暗夜伏魔', desc: '长度突破 22 节，消灭 2 只游荡小僵尸', targetScore: 850, targetLength: 22, rewardBonus: 600 },
   { id: 5, title: '银河奇迹', desc: '终极挑战！得分突破 1500，长度达到 28 节', targetScore: 1500, targetLength: 28, rewardBonus: 1000 },
 ]
 
 /* ═══════════════════════════════════════════════════════════════
-   主组件：星愿花园 · 萌藤贪吃蛇
+   屏幕虚拟摇杆组件 (Virtual Touch Joystick)
+   ═══════════════════════════════════════════════════════════════ */
+
+interface VirtualJoystickProps {
+  onDirection: (dir: Direction) => void
+  currentDir: Direction
+}
+
+function VirtualJoystick({ onDirection, currentDir }: VirtualJoystickProps) {
+  const [knobOffset, setKnobOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [activeDir, setActiveDir] = useState<Direction | null>(null)
+  const baseRef = useRef<HTMLDivElement>(null)
+  const pointerIdRef = useRef<number | null>(null)
+  const activeDirRef = useRef<Direction | null>(null)
+
+  const updateKnob = useCallback((clientX: number, clientY: number) => {
+    if (!baseRef.current) return
+    const rect = baseRef.current.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+
+    const dx = clientX - centerX
+    const dy = clientY - centerY
+    const dist = Math.hypot(dx, dy)
+    const maxRadius = 38 // 摇杆最大偏移半径
+
+    let clampedX = dx
+    let clampedY = dy
+    if (dist > maxRadius) {
+      clampedX = (dx / dist) * maxRadius
+      clampedY = (dy / dist) * maxRadius
+    }
+
+    setKnobOffset({ x: clampedX, y: clampedY })
+
+    // 死区判断（大于 10px 时计算方向）
+    if (dist > 10) {
+      const angle = (Math.atan2(dy, dx) * 180) / Math.PI
+      let dir: Direction = 'RIGHT'
+      if (angle >= -45 && angle <= 45) {
+        dir = 'RIGHT'
+      } else if (angle > 45 && angle < 135) {
+        dir = 'DOWN'
+      } else if (angle >= 135 || angle <= -135) {
+        dir = 'LEFT'
+      } else {
+        dir = 'UP'
+      }
+
+      if (activeDirRef.current !== dir) {
+        activeDirRef.current = dir
+        setActiveDir(dir)
+        onDirection(dir)
+      }
+    }
+  }, [onDirection])
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== null) return
+    pointerIdRef.current = e.pointerId
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      /* 兼容环境 */
+    }
+    updateKnob(e.clientX, e.clientY)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== e.pointerId) return
+    updateKnob(e.clientX, e.clientY)
+  }
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== e.pointerId) return
+    pointerIdRef.current = null
+    activeDirRef.current = null
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      /* 兼容 */
+    }
+    setKnobOffset({ x: 0, y: 0 })
+    setActiveDir(null)
+  }
+
+  return (
+    <div className="flex flex-col items-center select-none touch-none">
+      {/* 摇杆底座 */}
+      <div
+        ref={baseRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className="relative size-28 sm:size-32 rounded-full border-2 border-emerald-400/40 bg-slate-900/85 shadow-[0_0_20px_rgba(16,185,129,0.25)] backdrop-blur-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center transition-shadow active:shadow-[0_0_30px_rgba(16,185,129,0.45)]"
+      >
+        {/* 四向刻度与高亮箭头 */}
+        <span
+          className={`absolute top-1.5 flex items-center justify-center transition-transform ${
+            activeDir === 'UP' || currentDir === 'UP'
+              ? 'text-emerald-300 drop-shadow-[0_0_8px_#34d399] scale-125'
+              : 'text-white/20'
+          }`}
+        >
+          <ArrowUp className="size-4" />
+        </span>
+        <span
+          className={`absolute bottom-1.5 flex items-center justify-center transition-transform ${
+            activeDir === 'DOWN' || currentDir === 'DOWN'
+              ? 'text-emerald-300 drop-shadow-[0_0_8px_#34d399] scale-125'
+              : 'text-white/20'
+          }`}
+        >
+          <ArrowDown className="size-4" />
+        </span>
+        <span
+          className={`absolute left-1.5 flex items-center justify-center transition-transform ${
+            activeDir === 'LEFT' || currentDir === 'LEFT'
+              ? 'text-emerald-300 drop-shadow-[0_0_8px_#34d399] scale-125'
+              : 'text-white/20'
+          }`}
+        >
+          <ArrowLeft className="size-4" />
+        </span>
+        <span
+          className={`absolute right-1.5 flex items-center justify-center transition-transform ${
+            activeDir === 'RIGHT' || currentDir === 'RIGHT'
+              ? 'text-emerald-300 drop-shadow-[0_0_8px_#34d399] scale-125'
+              : 'text-white/20'
+          }`}
+        >
+          <ArrowRight className="size-4" />
+        </span>
+
+        {/* 内部同心装饰环 */}
+        <div className="size-16 rounded-full border border-white/10 pointer-events-none" />
+
+        {/* 摇杆中心滑块（Knob） */}
+        <div
+          className="absolute size-12 rounded-full border-2 border-emerald-300/80 bg-gradient-to-b from-emerald-400 to-emerald-600 shadow-[0_4px_12px_rgba(0,0,0,0.6)] pointer-events-none flex items-center justify-center"
+          style={{
+            transform: `translate(${knobOffset.x}px, ${knobOffset.y}px)`,
+            transition: pointerIdRef.current === null ? 'transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
+          }}
+        >
+          {/* 滑块凹陷与手感凸点 */}
+          <div className="size-4 rounded-full bg-white/40 border border-white/60 shadow-inner" />
+        </div>
+      </div>
+      <p className="mt-2 text-[11px] font-bold text-emerald-200/70 tracking-wider">
+        触控摇杆转向
+      </p>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   主组件：星愿花园 · 萌藤贪吃蛇（强制横屏模式）
    ═══════════════════════════════════════════════════════════════ */
 
 export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGardenProps) {
-  const [activeTab, setActiveTab] = useState<'arcade' | 'skins'>('arcade')
   const [selectedSkin, setSelectedSkin] = useState<SnakeSkin>('sprout')
+  const [showSkinModal, setShowSkinModal] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  /* 横屏与移动端判定 */
+  const [mobileUI, setMobileUI] = useState(false)
+  const [landscape, setLandscape] = useState(true)
+
+  useEffect(() => {
+    const mqMobile = window.matchMedia('(pointer: coarse) and (max-width: 1023px)')
+    const mqLand = window.matchMedia('(orientation: landscape)')
+    const update = () => {
+      setMobileUI(mqMobile.matches)
+      setLandscape(mqLand.matches || window.innerWidth > window.innerHeight)
+    }
+    update()
+    mqMobile.addEventListener('change', update)
+    mqLand.addEventListener('change', update)
+    window.addEventListener('resize', update)
+    return () => {
+      mqMobile.removeEventListener('change', update)
+      mqLand.removeEventListener('change', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [])
+
+  const tryLandscape = useCallback(async () => {
+    try {
+      await document.documentElement.requestFullscreen()
+      const scr = screen as unknown as { orientation?: { lock?: (o: string) => Promise<void> } }
+      if (scr.orientation && typeof scr.orientation.lock === 'function') {
+        await scr.orientation.lock('landscape')
+      }
+    } catch {
+      /* iOS Safari 等不支持 */
+    }
+  }, [])
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen()
+        const scr = screen as unknown as { orientation?: { lock?: (o: string) => Promise<void> } }
+        if (scr.orientation && typeof scr.orientation.lock === 'function') {
+          await scr.orientation.lock('landscape')
+        }
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch {
+      /* 忽略 */
+    }
+  }, [])
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
 
   /* 游戏核心状态 */
   const [snake, setSnake] = useState<Point[]>([
@@ -139,7 +357,7 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
 
   const [foods, setFoods] = useState<FoodItem[]>([])
   const [score, setScore] = useState(0)
-  const [lives, setLives] = useState(3) // 3点生命值，撞墙/撞身不会直接猝死！
+  const [lives, setLives] = useState(3) // 3点生命值保障
   const [isPaused, setIsPaused] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
 
@@ -152,7 +370,7 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
   const [combo, setCombo] = useState(0)
   const [comboTimer, setComboTimer] = useState(0)
 
-  /* 手动冲刺按钮按住状态 */
+  /* 手动冲刺按钮状态 */
   const [dashActive, setDashActive] = useState(false)
 
   /* 飘字特效 */
@@ -242,6 +460,15 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
     startNewGame()
   }, [startNewGame])
 
+  /* 摇杆转向回调 */
+  const handleJoystickDirection = useCallback((newDir: Direction) => {
+    const cur = nextDirRef.current
+    if (newDir === 'UP' && cur !== 'DOWN') nextDirRef.current = 'UP'
+    else if (newDir === 'DOWN' && cur !== 'UP') nextDirRef.current = 'DOWN'
+    else if (newDir === 'LEFT' && cur !== 'RIGHT') nextDirRef.current = 'LEFT'
+    else if (newDir === 'RIGHT' && cur !== 'LEFT') nextDirRef.current = 'RIGHT'
+  }, [])
+
   /* ───────────────────────────────────────────────────────────
      键盘控制绑定（WASD、方向键、空格冲刺）
      ─────────────────────────────────────────────────────────── */
@@ -278,18 +505,16 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
   }, [])
 
   /* ───────────────────────────────────────────────────────────
-     游戏主时钟循环（根据状态与冲刺动态控制帧率）
+     游戏主时钟循环
      ─────────────────────────────────────────────────────────── */
   useEffect(() => {
     if (isGameOver || isPaused) return
 
-    // 基础移动间隔（毫秒）：减速状态更慢，冲刺状态更快
-    let intervalMs = 135
-    if (freezeTime > 0) intervalMs = 210
-    if (dashActive || boostTime > 0) intervalMs = 70
+    let intervalMs = 130
+    if (freezeTime > 0) intervalMs = 200
+    if (dashActive || boostTime > 0) intervalMs = 68
 
     const timer = setInterval(() => {
-      /* 状态时间递减 */
       setFreezeTime((t) => Math.max(0, t - intervalMs / 1000))
       setBoostTime((t) => Math.max(0, t - intervalMs / 1000))
       setMagnetTime((t) => Math.max(0, t - intervalMs / 1000))
@@ -312,7 +537,6 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
           remainingFoods.push(f)
         })
 
-        // 随机刷新特殊食物（辣椒、冰豆、磁铁、游荡僵尸）
         if (Math.random() < 0.045 && remainingFoods.length < 5) {
           const kinds: FoodType[] = ['cherry', 'freeze', 'jalapeno', 'magnet', 'zombie']
           const picked = kinds[Math.floor(Math.random() * kinds.length)]
@@ -366,7 +590,6 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
         const hitSelf = curSnake.slice(1).some((seg) => seg.x === newHead.x && seg.y === newHead.y)
 
         if (hitWall || hitSelf) {
-          // 狂暴状态可穿墙反弹，不受伤害
           if (boostTime > 0) {
             newHead.x = (newHead.x + GRID_SIZE) % GRID_SIZE
             newHead.y = (newHead.y + GRID_SIZE) % GRID_SIZE
@@ -376,7 +599,6 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
               const nextL = l - 1
               if (nextL <= 0) {
                 setIsGameOver(true)
-                // 结算高分
                 setScore((curS) => {
                   if (curS > bestScore) {
                     onBestScore(curS)
@@ -386,7 +608,6 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
               }
               return nextL
             })
-            // 扣除命数后，修剪蛇身减半并弹回中央，给予第二次机会！
             showPop(head.x, head.y, '哎呀！注意避让', '#f87171')
             return curSnake.slice(0, Math.max(3, Math.floor(curSnake.length * 0.7)))
           }
@@ -405,10 +626,9 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
           return currentFoods
         })
 
-        // 如果吃到了食物
         if (ateFood) {
           const food: FoodItem = ateFood
-          let addedScore = 10
+          let addedScore = 15
           let growLength = 1
 
           if (food.type === 'sun') {
@@ -437,52 +657,54 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
             addedScore = 40
             showPop(newHead.x, newHead.y, '磁力开启 6s!', '#a855f7')
           } else if (food.type === 'zombie') {
-            // 吃僵尸！
             audio.playZombieDie()
             addedScore = selectedSkin === 'star' ? 240 : 120
             growLength = 2
             showPop(newHead.x, newHead.y, `吞食僵尸 +${addedScore}!`, '#22c55e')
           }
 
-          // 连击累加
           setCombo((c) => c + 1)
           setComboTimer(3.5)
 
-          const totalAdd = Math.round(addedScore * comboMultiplier)
+          const finalEarn = Math.round(addedScore * comboMultiplier)
           setScore((s) => {
-            const nextScore = s + totalAdd
-
-            // 关卡目标达标检测
-            const mission = MISSIONS[curMissionIdx]
-            if (
-              mission &&
-              nextScore >= mission.targetScore &&
-              curSnake.length + growLength >= mission.targetLength
-            ) {
-              audio.playWin()
-              setMissionCompletePopup(`🏆 恭喜达成目标【${mission.title}】！奖励 +${mission.rewardBonus}分`)
-              setCurMissionIdx((idx) => Math.min(MISSIONS.length - 1, idx + 1))
-              setTimeout(() => setMissionCompletePopup(null), 4500)
-              return nextScore + mission.rewardBonus
+            const nextScore = s + finalEarn
+            if (nextScore > bestScore) {
+              onBestScore(nextScore)
             }
-
             return nextScore
           })
 
-          // 补回必定存在的太阳食物
+          // 达成任务判定
+          const curM = MISSIONS[curMissionIdx]
+          if (curM && (score + finalEarn >= curM.targetScore || curSnake.length + growLength >= curM.targetLength)) {
+            setMissionCompletePopup(`🎉 目标达成：${curM.title} (+${curM.rewardBonus}分)`)
+            setScore((s) => s + curM.rewardBonus)
+            if (curMissionIdx < MISSIONS.length - 1) {
+              setCurMissionIdx((i) => i + 1)
+            }
+            setTimeout(() => setMissionCompletePopup(null), 3000)
+          }
+
+          // 补充阳光
           setFoods((fs) => {
-            if (!fs.some((f) => f.type === 'sun')) {
-              const cell = getFreeCell([newHead, ...curSnake])
-              return [...fs, { id: nextUid(), x: cell.x, y: cell.y, type: 'sun', life: 999 }]
+            const hasSun = fs.some((f) => f.type === 'sun')
+            if (!hasSun) {
+              const newSun = getFreeCell([...curSnake, newHead])
+              return [...fs, { id: nextUid(), x: newSun.x, y: newSun.y, type: 'sun', life: 999 }]
             }
             return fs
           })
 
-          // 生长：不削减尾巴，增加新身体
-          return [newHead, ...curSnake]
+          // 身体生长
+          const newBody = [newHead, ...curSnake]
+          if (growLength > 1) {
+            newBody.push(curSnake[curSnake.length - 1])
+          }
+          return newBody
         }
 
-        // 普通移动：向前一格，尾部弹出一个
+        // 未吃到食物正常前进
         return [newHead, ...curSnake.slice(0, -1)]
       })
     }, intervalMs)
@@ -492,10 +714,11 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
     isGameOver,
     isPaused,
     freezeTime,
+    dashActive,
     boostTime,
     magnetTime,
-    dashActive,
     comboMultiplier,
+    score,
     bestScore,
     onBestScore,
     selectedSkin,
@@ -505,124 +728,145 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
     showPop,
   ])
 
-  /* 换装皮肤定义 */
   const skin = SKINS.find((s) => s.id === selectedSkin) ?? SKINS[0]
 
   /* ───────────────────────────────────────────────────────────
-     渲染页面
+     移动端竖屏状态：引导旋转至横屏
      ─────────────────────────────────────────────────────────── */
-  return (
-    <main className="mx-auto w-full max-w-5xl px-3 py-4 sm:px-6 sm:py-8 select-none">
-      {/* 顶部工具与模式切换 */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground shadow transition hover:-translate-y-0.5"
-        >
-          <ArrowLeft className="size-4" />
-          返回游戏列表
-        </button>
-
-        {/* 标签栏 */}
-        <div className="flex rounded-full border border-emerald-400/40 bg-slate-900/80 p-1 backdrop-blur-md">
+  if (mobileUI && !landscape) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-[#08120a] p-8 text-center text-white select-none">
+        <div className="anim-rotate-phone">
+          <svg className="size-20 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="5" y="2" width="14" height="20" rx="3" />
+            <path d="M12 18h.01" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="font-display text-2xl font-black text-amber-300">
+            请旋转手机至横屏
+          </h2>
+          <p className="mt-2 text-sm text-emerald-100/80 leading-relaxed max-w-xs">
+            萌藤贪吃蛇需要横屏畅玩，视野更宽广，双拇指操控更畅快！
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row w-full max-w-xs">
           <button
-            onClick={() => setActiveTab('arcade')}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition sm:text-sm ${
-              activeTab === 'arcade'
-                ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow'
-                : 'text-slate-300 hover:text-white'
-            }`}
+            onClick={tryLandscape}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 py-3.5 font-display text-sm font-extrabold text-white shadow-lg transition active:scale-95"
           >
-            <Sparkles className="size-4" /> 星愿贪吃蛇
+            <Maximize className="size-4" />
+            自动全屏横屏
           </button>
           <button
-            onClick={() => setActiveTab('skins')}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition sm:text-sm ${
-              activeTab === 'skins'
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow'
-                : 'text-slate-300 hover:text-white'
-            }`}
+            onClick={onBack}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-white/10 py-3 text-xs font-bold text-slate-300 transition active:scale-95"
           >
-            <Sun className="size-4" /> 萌宠皮肤工坊
+            <ArrowLeft className="size-4" />
+            返回主菜单
           </button>
         </div>
-
-        <MusicToggle />
+        <p className="text-xs text-muted-foreground/70">
+          iOS 设备请关闭控制中心的竖排锁定并横放手机；Android 可直接点击自动横屏
+        </p>
       </div>
+    )
+  }
 
-      {activeTab === 'arcade' ? (
-        <section className="relative overflow-hidden rounded-[2.5rem] border-[6px] border-[#2d3a22] bg-[#1a2d21] p-4 shadow-2xl sm:p-6">
-          {/* 顶部仪表盘：得分、生命、连击、目标 */}
-          <header className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-black/35 p-3 text-white backdrop-blur-md">
-            {/* 生命值与长度 */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Heart
-                    key={i}
-                    className={`size-6 transition-transform ${
-                      i < lives
-                        ? 'fill-rose-500 text-rose-400 scale-100'
-                        : 'fill-slate-800 text-slate-700 scale-90'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-2.5 py-1 text-xs font-bold text-emerald-300">
-                长度: {snake.length} 节
-              </span>
-            </div>
+  /* ───────────────────────────────────────────────────────────
+     横屏游戏主界面（双拇指掌机手游布局）
+     ─────────────────────────────────────────────────────────── */
+  return (
+    <div className="fixed inset-0 z-40 flex flex-col bg-[#071109] text-white select-none touch-none overflow-hidden overscroll-none">
+      {/* 顶部紧凑状态栏 */}
+      <header className="h-11 shrink-0 border-b border-white/10 bg-black/45 px-3 flex items-center justify-between backdrop-blur-md z-30">
+        {/* 左侧：返回 + 换皮肤 + 音效 */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-slate-200 hover:bg-white/20 active:scale-95 transition"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span className="hidden sm:inline">菜单</span>
+          </button>
 
-            {/* 连击倍率徽章 */}
+          <button
+            onClick={() => setShowSkinModal(true)}
+            className="flex items-center gap-1 rounded-full bg-purple-500/20 border border-purple-400/40 px-2.5 py-1 text-xs font-bold text-purple-200 hover:bg-purple-500/30 active:scale-95 transition"
+          >
+            <Sparkles className="size-3.5 text-purple-300" />
+            <span>换装 · {skin.name}</span>
+          </button>
+
+          <MusicToggle />
+        </div>
+
+        {/* 中间：标题与得分 */}
+        <div className="flex items-center gap-3">
+          <h1 className="hidden md:inline font-display text-sm font-extrabold text-amber-300 tracking-wide">
+            星愿花园 · 萌藤贪吃蛇
+          </h1>
+          <div className="flex items-center gap-2">
+            <span className="rounded-lg bg-black/60 px-2.5 py-0.5 text-xs font-black text-amber-300 border border-amber-400/30 tabular-nums">
+              得分 {score}
+            </span>
+            <span className="rounded-lg bg-black/40 px-2.5 py-0.5 text-xs font-bold text-slate-400 tabular-nums">
+              最高 {bestScore || '—'}
+            </span>
             {combo >= 2 && (
-              <div className="flex items-center gap-1.5 rounded-xl border border-amber-300 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1 font-display text-xs font-extrabold text-slate-950 animate-bounce">
-                <Flame className="size-4 fill-current text-yellow-200" />
-                <span>
-                  {combo >= 8 ? 'MAX FEVER!' : `连击 x${combo}`} ({comboMultiplier}x)
-                </span>
-              </div>
-            )}
-
-            {/* 积分与历史最高 */}
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-black/40 px-3 py-1 text-center">
-                <span className="block text-[10px] font-bold text-slate-300">当前积分</span>
-                <span className="font-display text-lg font-black text-white">{score}</span>
-              </div>
-              <div className="rounded-xl bg-black/40 px-3 py-1 text-center">
-                <span className="block text-[10px] font-bold text-amber-300">历史最高</span>
-                <span className="font-display text-lg font-black text-amber-300">
-                  {bestScore || '—'}
-                </span>
-              </div>
-            </div>
-          </header>
-
-          {/* 关卡目标条 */}
-          <div className="mb-3 flex items-center justify-between rounded-xl border border-white/10 bg-black/25 px-3 py-1.5 text-xs text-slate-200">
-            <span className="flex items-center gap-1 font-bold text-amber-300">
-              <Award className="size-4 text-amber-400" />
-              当前目标：{MISSIONS[curMissionIdx]?.title}
-            </span>
-            <span className="text-slate-300">
-              {MISSIONS[curMissionIdx]?.desc}（需达 {MISSIONS[curMissionIdx]?.targetScore} 分）
-            </span>
-          </div>
-
-          {/* 通关横幅弹窗 */}
-          {missionCompletePopup && (
-            <div className="mb-2 text-center animate-bounce">
-              <span className="inline-block rounded-full border border-amber-300 bg-amber-500 px-4 py-1 font-display text-xs font-black text-slate-950 shadow-lg sm:text-sm">
-                {missionCompletePopup}
+              <span className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 px-2 py-0.5 text-xs font-black text-slate-950 animate-pulse">
+                <Flame className="size-3 fill-current" />
+                {comboMultiplier}x
               </span>
-            </div>
-          )}
+            )}
+          </div>
+        </div>
 
-          {/* ═════════════════════════════════════════════════
-              20 × 20 像素草坪棋盘
-              ═════════════════════════════════════════════════ */}
-          <div className="relative mx-auto aspect-square w-full max-w-[500px] overflow-hidden rounded-3xl border-4 border-[#2d3a22] bg-[#18291e] shadow-2xl">
-            {/* 网格底纹 */}
+        {/* 右侧：生命爱心 + 暂停 + 全屏 */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5 mr-1">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Heart
+                key={i}
+                className={`size-4.5 transition-transform ${
+                  i < lives ? 'fill-rose-500 text-rose-400 scale-100' : 'fill-slate-800 text-slate-700 scale-90'
+                }`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => setIsPaused(!isPaused)}
+            className="rounded-full bg-white/10 p-1.5 text-slate-200 hover:bg-white/20 active:scale-95 transition"
+            title={isPaused ? '继续' : '暂停'}
+          >
+            {isPaused ? <Play className="size-4" /> : <Pause className="size-4" />}
+          </button>
+          <button
+            onClick={toggleFullscreen}
+            className="rounded-full bg-white/10 p-1.5 text-slate-200 hover:bg-white/20 active:scale-95 transition"
+            title="全屏"
+          >
+            {isFullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
+          </button>
+        </div>
+      </header>
+
+      {/* ───────────────────────────────────────────────────────────
+          横屏主舞台：左手摇杆 + 中间草坪 + 右手冲刺
+          ─────────────────────────────────────────────────────────── */}
+      <div className="flex-1 flex items-center justify-between px-2 sm:px-6 py-2 overflow-hidden gap-2 sm:gap-4">
+        {/* 左侧区域：屏幕虚拟摇杆 */}
+        <div className="w-32 sm:w-44 shrink-0 flex flex-col items-center justify-center">
+          <VirtualJoystick onDirection={handleJoystickDirection} currentDir={dir} />
+          <span className="mt-2 text-[10px] text-muted-foreground/60 hidden sm:inline">
+            或键盘 WASD / 方向键
+          </span>
+        </div>
+
+        {/* 中间核心：自适应高度的 20 × 20 像素草坪棋盘 */}
+        <div className="flex-1 flex items-center justify-center h-full max-h-full py-0.5">
+          <div className="relative aspect-square h-full max-h-[calc(100vh-3.5rem)] max-w-full rounded-2xl sm:rounded-3xl border-4 border-[#2d3a22] bg-[#18291e] shadow-2xl overflow-hidden">
+            {/* 网格草坪地砖 */}
             <div
               className="grid size-full"
               style={{
@@ -645,7 +889,7 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
               })}
             </div>
 
-            {/* 食物渲染层 */}
+            {/* 食物渲染 */}
             {foods.map((food) => {
               const leftPct = (food.x / GRID_SIZE) * 100
               const topPct = (food.y / GRID_SIZE) * 100
@@ -713,18 +957,17 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
                   }}
                 >
                   {isHead ? (
-                    /* 萌系小蛇头部：大眼萌动、可爱腮红 */
                     <div
                       className="relative size-[94%] rounded-full border-[2.6px] border-[#2d3a22] shadow-md flex items-center justify-center"
                       style={{
                         backgroundColor: skin.color,
-                        boxShadow: boostTime > 0 ? '0 0 12px #f43f5e' : 'none',
+                        boxShadow: boostTime > 0 ? '0 0 14px #f43f5e' : 'none',
                       }}
                     >
-                      {/* 头顶叶子 / 花蕊 */}
+                      {/* 头顶花蕊 */}
                       <span className="absolute -top-1.5 size-2 rounded-full bg-amber-300 border border-[#2d3a22]" />
 
-                      {/* 大眼萌高光 */}
+                      {/* 大眼灵动高光 */}
                       <div className="flex gap-1.5">
                         <span className="relative size-2 rounded-full bg-white border border-[#2d3a22]">
                           <span
@@ -747,7 +990,6 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
                       </div>
                     </div>
                   ) : (
-                    /* 蛇身节球：带有植物花纹或叶片装点 */
                     <div
                       className="size-[84%] rounded-full border-[2px] border-[#2d3a22] flex items-center justify-center shadow-sm"
                       style={{
@@ -764,7 +1006,7 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
               )
             })}
 
-            {/* 飘字渲染层 */}
+            {/* 飘字特效层 */}
             {popups.map((p) => (
               <span
                 key={p.id}
@@ -779,7 +1021,16 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
               </span>
             ))}
 
-            {/* 游戏暂停浮层 */}
+            {/* 达成挑战提示 */}
+            {missionCompletePopup && (
+              <div className="absolute inset-x-0 top-3 z-40 text-center animate-bounce pointer-events-none">
+                <span className="inline-block rounded-full border border-amber-300 bg-amber-500 px-4 py-1 font-display text-xs font-black text-slate-950 shadow-lg">
+                  {missionCompletePopup}
+                </span>
+              </div>
+            )}
+
+            {/* 游戏暂停遮罩 */}
             {isPaused && (
               <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-xs">
                 <div className="rounded-3xl border border-white/20 bg-slate-900/90 px-6 py-4 text-center text-white">
@@ -787,7 +1038,7 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
                   <h3 className="font-display text-xl font-bold">游戏已暂停</h3>
                   <button
                     onClick={() => setIsPaused(false)}
-                    className="mt-4 rounded-full bg-primary px-6 py-2 text-xs font-extrabold text-primary-foreground"
+                    className="mt-4 rounded-full bg-primary px-6 py-2 text-xs font-extrabold text-primary-foreground transition active:scale-95"
                   >
                     继续冒险
                   </button>
@@ -797,32 +1048,32 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
 
             {/* 游戏结束结算 */}
             {isGameOver && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-                <div className="w-full max-w-sm rounded-3xl border-2 border-amber-300 bg-gradient-to-b from-[#1c2e22] to-[#0f1d14] p-6 text-center text-white shadow-2xl">
-                  <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-amber-400 text-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.6)]">
-                    <Trophy className="size-8" />
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                <div className="w-full max-w-sm rounded-3xl border-2 border-amber-300 bg-gradient-to-b from-[#1c2e22] to-[#0f1d14] p-5 text-center text-white shadow-2xl">
+                  <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-2xl bg-amber-400 text-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.6)]">
+                    <Trophy className="size-7" />
                   </div>
-                  <h3 className="font-display text-2xl font-black text-amber-300">
+                  <h3 className="font-display text-xl font-black text-amber-300">
                     星愿冒险总结
                   </h3>
-                  <p className="mt-1 text-xs text-emerald-100">小蛇在草坪上留下了漫天繁星！</p>
+                  <p className="mt-0.5 text-xs text-emerald-100">小蛇在星夜草坪留下了漫天繁星！</p>
 
-                  <div className="my-4 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-black/40 p-3 text-center">
+                  <div className="my-3 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-black/40 p-2.5 text-center">
                     <div>
                       <span className="block text-[10px] text-slate-300">终局长度</span>
-                      <span className="font-display text-xl font-black text-emerald-300">
+                      <span className="font-display text-lg font-black text-emerald-300">
                         {snake.length} 节
                       </span>
                     </div>
                     <div>
                       <span className="block text-[10px] text-slate-300">本次得分</span>
-                      <span className="font-display text-xl font-black text-amber-300">{score}</span>
+                      <span className="font-display text-lg font-black text-amber-300">{score}</span>
                     </div>
                   </div>
 
                   <button
                     onClick={startNewGame}
-                    className="w-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 py-3 font-display text-base font-extrabold text-slate-950 shadow transition hover:-translate-y-0.5 active:translate-y-0"
+                    className="w-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 py-2.5 font-display text-sm font-extrabold text-slate-950 shadow transition hover:-translate-y-0.5 active:translate-y-0"
                   >
                     再来一局！
                   </button>
@@ -830,144 +1081,165 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
               </div>
             )}
           </div>
+        </div>
 
-          {/* ═════════════════════════════════════════════════
-              移动端与触控虚拟手柄控制盘
-              ═════════════════════════════════════════════════ */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            {/* 暂停与冲刺按钮 */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsPaused(!isPaused)}
-                className="rounded-xl border border-white/20 bg-slate-800/80 px-3.5 py-2 text-xs font-bold text-slate-200 transition hover:bg-slate-700"
-              >
-                {isPaused ? <Play className="size-4 inline mr-1" /> : <Pause className="size-4 inline mr-1" />}
-                {isPaused ? '继续' : '暂停'}
-              </button>
+        {/* 右侧区域：极速冲刺大按钮 + 状态与目标 */}
+        <div className="w-32 sm:w-44 shrink-0 flex flex-col items-center justify-center gap-2.5">
+          {/* 极速冲刺大按钮 */}
+          <div className="flex flex-col items-center">
+            <button
+              onPointerDown={() => setDashActive(true)}
+              onPointerUp={() => setDashActive(false)}
+              onPointerCancel={() => setDashActive(false)}
+              className={`size-20 sm:size-24 rounded-full border-2 flex flex-col items-center justify-center shadow-lg transition-all active:scale-95 select-none touch-none ${
+                dashActive || boostTime > 0
+                  ? 'border-rose-300 bg-gradient-to-b from-rose-500 to-red-600 text-white shadow-[0_0_24px_rgba(244,63,94,0.6)] scale-105'
+                  : 'border-amber-400/50 bg-gradient-to-b from-amber-500/20 to-amber-600/35 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.2)] hover:border-amber-400'
+              }`}
+            >
+              <Zap className={`size-7 sm:size-8 ${dashActive || boostTime > 0 ? 'animate-bounce' : ''}`} />
+              <span className="font-display text-[11px] sm:text-xs font-black mt-0.5">
+                {boostTime > 0 ? '狂暴冲刺' : '按住冲刺'}
+              </span>
+            </button>
+            <p className="mt-1 text-[10px] text-amber-200/60 font-bold">右拇指加速</p>
+          </div>
 
-              <button
-                onMouseDown={() => setDashActive(true)}
-                onMouseUp={() => setDashActive(false)}
-                onTouchStart={() => setDashActive(true)}
-                onTouchEnd={() => setDashActive(false)}
-                className={`flex items-center gap-1 rounded-xl border px-4 py-2 font-display text-xs font-black transition ${
-                  dashActive || boostTime > 0
-                    ? 'border-rose-400 bg-rose-500 text-white scale-105'
-                    : 'border-amber-400/50 bg-amber-500/20 text-amber-300'
+          {/* 增益状态指示 */}
+          {(freezeTime > 0 || boostTime > 0 || magnetTime > 0) && (
+            <div className="flex flex-col gap-1 w-full max-w-[120px]">
+              {freezeTime > 0 && (
+                <div className="flex items-center justify-between rounded-lg bg-cyan-950/70 border border-cyan-400/40 px-2 py-0.5 text-[10px] text-cyan-200">
+                  <span>❄ 冰霜减速</span>
+                  <span className="font-bold">{Math.ceil(freezeTime)}s</span>
+                </div>
+              )}
+              {boostTime > 0 && (
+                <div className="flex items-center justify-between rounded-lg bg-rose-950/70 border border-rose-400/40 px-2 py-0.5 text-[10px] text-rose-200">
+                  <span>🌶 狂暴无敌</span>
+                  <span className="font-bold">{Math.ceil(boostTime)}s</span>
+                </div>
+              )}
+              {magnetTime > 0 && (
+                <div className="flex items-center justify-between rounded-lg bg-purple-950/70 border border-purple-400/40 px-2 py-0.5 text-[10px] text-purple-200">
+                  <span>🧲 磁力吸取</span>
+                  <span className="font-bold">{Math.ceil(magnetTime)}s</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 当前挑战微卡 */}
+          <div className="w-full max-w-[120px] rounded-xl border border-white/10 bg-black/40 p-2 text-[10px] text-slate-300">
+            <div className="flex items-center gap-1 font-bold text-amber-300 truncate">
+              <Award className="size-3 shrink-0" />
+              <span>{MISSIONS[curMissionIdx]?.title}</span>
+            </div>
+            <p className="truncate text-slate-400 text-[9px] mt-0.5">
+              目标: {MISSIONS[curMissionIdx]?.targetScore}分 / {MISSIONS[curMissionIdx]?.targetLength}节
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 换装工坊弹窗 */}
+      {showSkinModal && (
+        <SkinModal
+          skins={SKINS}
+          selectedSkin={selectedSkin}
+          onSelect={(id) => {
+            setSelectedSkin(id)
+            setShowSkinModal(false)
+          }}
+          onClose={() => setShowSkinModal(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   换装工坊弹窗组件 (SkinModal)
+   ═══════════════════════════════════════════════════════════════ */
+
+interface SkinModalProps {
+  skins: SkinDef[]
+  selectedSkin: SnakeSkin
+  onSelect: (id: SnakeSkin) => void
+  onClose: () => void
+}
+
+function SkinModal({ skins, selectedSkin, onSelect, onClose }: SkinModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg rounded-3xl border-2 border-purple-400/40 bg-gradient-to-b from-[#181d2c] to-[#0c0f17] p-5 text-white shadow-2xl max-h-[85vh] flex flex-col">
+        {/* 头部 */}
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-5 text-purple-300" />
+            <h3 className="font-display text-base font-black text-amber-200">
+              星愿萌藤工坊 · 选择皮肤
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full bg-white/10 p-1 text-slate-300 hover:bg-white/20 active:scale-95"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        {/* 皮肤列表 */}
+        <div className="grid gap-3 sm:grid-cols-2 overflow-y-auto py-3 pr-1">
+          {skins.map((s) => {
+            const isSelected = selectedSkin === s.id
+            return (
+              <div
+                key={s.id}
+                onClick={() => {
+                  audio.playClick()
+                  onSelect(s.id)
+                }}
+                className={`cursor-pointer rounded-2xl border p-3 transition ${
+                  isSelected
+                    ? 'border-amber-300 bg-amber-400/15 ring-2 ring-amber-300'
+                    : 'border-white/15 bg-black/35 hover:border-white/40'
                 }`}
               >
-                <Zap className="size-4" /> 冲刺 (按住加速)
-              </button>
-            </div>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-display text-sm font-bold text-white">{s.name}</h4>
+                  {isSelected && (
+                    <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[9px] font-black text-slate-950">
+                      使用中
+                    </span>
+                  )}
+                </div>
 
-            {/* 十字方向键 */}
-            <div className="mx-auto sm:mr-0 grid grid-cols-3 gap-1.5 w-36">
-              <div />
-              <button
-                onClick={() => {
-                  if (dir !== 'DOWN') nextDirRef.current = 'UP'
-                }}
-                className="flex size-11 items-center justify-center rounded-xl bg-slate-800/90 text-white shadow active:bg-amber-500 active:text-slate-950"
-              >
-                <ArrowUp className="size-5" />
-              </button>
-              <div />
-              <button
-                onClick={() => {
-                  if (dir !== 'RIGHT') nextDirRef.current = 'LEFT'
-                }}
-                className="flex size-11 items-center justify-center rounded-xl bg-slate-800/90 text-white shadow active:bg-amber-500 active:text-slate-950"
-              >
-                <ArrowLeft className="size-5" />
-              </button>
-              <button
-                onClick={() => {
-                  if (dir !== 'UP') nextDirRef.current = 'DOWN'
-                }}
-                className="flex size-11 items-center justify-center rounded-xl bg-slate-800/90 text-white shadow active:bg-amber-500 active:text-slate-950"
-              >
-                <ArrowDown className="size-5" />
-              </button>
-              <button
-                onClick={() => {
-                  if (dir !== 'LEFT') nextDirRef.current = 'RIGHT'
-                }}
-                className="flex size-11 items-center justify-center rounded-xl bg-slate-800/90 text-white shadow active:bg-amber-500 active:text-slate-950"
-              >
-                <ArrowRight className="size-5" />
-              </button>
-            </div>
-          </div>
-        </section>
-      ) : (
-        /* ═════════════════════════════════════════════════
-           TAB 2: 萌宠皮肤工坊
-           ═════════════════════════════════════════════════ */
-        <section className="relative overflow-hidden rounded-[2.5rem] border-[6px] border-[#2d3a22] bg-[#16231c] p-6 text-white shadow-2xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/40 bg-purple-500/20 px-3.5 py-1 text-xs font-bold text-purple-200">
-              <Sparkles className="size-4" /> 个性化萌宠外观
-            </span>
-            <h2 className="mt-2 font-display text-3xl font-black text-amber-200">
-              星愿萌藤工坊
-            </h2>
-            <p className="mt-1 text-xs text-emerald-200">
-              换上喜欢的植物灵蛇皮肤，在星夜草坪中展开不同寻常的吞食大冒险！
-            </p>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 text-left">
-              {SKINS.map((s) => {
-                const isSelected = selectedSkin === s.id
-                return (
+                <div className="my-2 flex items-center gap-1.5">
                   <div
-                    key={s.id}
-                    onClick={() => {
-                      audio.playClick()
-                      setSelectedSkin(s.id)
-                    }}
-                    className={`cursor-pointer rounded-2xl border p-4 transition ${
-                      isSelected
-                        ? 'border-amber-300 bg-amber-400/15 ring-2 ring-amber-300'
-                        : 'border-white/15 bg-black/35 hover:border-white/40'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-display text-base font-bold text-white">{s.name}</h4>
-                      {isSelected && (
-                        <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-black text-slate-950">
-                          使用中
-                        </span>
-                      )}
-                    </div>
+                    className="size-6 rounded-full border-2 border-[#2d3a22] shadow"
+                    style={{ backgroundColor: s.color }}
+                  />
+                  <div
+                    className="size-5 rounded-full border-2 border-[#2d3a22] shadow"
+                    style={{ backgroundColor: s.bodyColor }}
+                  />
+                  <div
+                    className="size-4 rounded-full border-2 border-[#2d3a22] shadow"
+                    style={{ backgroundColor: s.color }}
+                  />
+                </div>
 
-                    <div className="my-3 flex items-center gap-2">
-                      <div
-                        className="size-8 rounded-full border-2 border-[#2d3a22] shadow"
-                        style={{ backgroundColor: s.color }}
-                      />
-                      <div
-                        className="size-6 rounded-full border-2 border-[#2d3a22] shadow"
-                        style={{ backgroundColor: s.bodyColor }}
-                      />
-                      <div
-                        className="size-5 rounded-full border-2 border-[#2d3a22] shadow"
-                        style={{ backgroundColor: s.color }}
-                      />
-                    </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">{s.desc}</p>
+              </div>
+            )
+          })}
+        </div>
 
-                    <p className="text-xs text-slate-300 leading-relaxed">{s.desc}</p>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 底部小贴士 */}
-      <p className="mx-auto mt-4 max-w-2xl text-center text-xs leading-relaxed text-muted-foreground">
-        操作指南：支持方向键或 WASD 移动，长按【空格键】或触控【冲刺】按钮加速奔跑。拥有 3 点生命值保障，撞墙后可折损少量长度继续冒险！
-      </p>
-    </main>
+        <p className="pt-2 border-t border-white/10 text-center text-xs text-muted-foreground">
+          点击皮肤即刻生效，换装后开启更加酷炫的吞食冒险！
+        </p>
+      </div>
+    </div>
   )
 }

@@ -47,7 +47,7 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
   const isStandalone = useCallback(() => {
     if (typeof window === 'undefined') return false
     return window.matchMedia('(display-mode: standalone)').matches ||
-      (typeof navigator.standalone === 'boolean' && navigator.standalone)
+      (typeof (navigator as unknown as { standalone?: boolean }).standalone === 'boolean' && !!(navigator as unknown as { standalone?: boolean }).standalone)
   }, [])
 
   pausedRef.current = paused
@@ -170,8 +170,9 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
   const tryLandscape = useCallback(async () => {
     try {
       await document.documentElement.requestFullscreen()
-      if (screen.orientation && typeof screen.orientation.lock === 'function') {
-        await screen.orientation.lock('landscape')
+      const scr = screen as unknown as { orientation?: { lock?: (o: string) => Promise<void> } }
+      if (scr.orientation && typeof scr.orientation.lock === 'function') {
+        await scr.orientation.lock('landscape')
       }
     } catch {
       /* iOS Safari 不支持 */

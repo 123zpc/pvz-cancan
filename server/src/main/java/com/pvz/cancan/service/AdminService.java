@@ -20,7 +20,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminService {
 
-  private static final int MAIN_LEVEL_COUNT = 10;
+  private static final int MAIN_LEVEL_COUNT = 16;
   private static final int MATCH3_LEVEL_COUNT = 11;
 
   private final UserService userService;

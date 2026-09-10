@@ -531,7 +531,7 @@ export const LEVELS: Level[] = [
     message: '罐子破裂的一瞬，漫天星光倾泻而出。不管前方藏着多少未知，我们都会并肩破解。',
     story: '院子里摆满了神秘的星愿陶罐。你轻轻敲碎其中一个，跳出了一只向日葵；我又敲碎一个，钻出了一只呆萌的小僵尸。相视一笑之间，那些未知的冒险，都变成了我们最甜的默契。',
     storyHighlight: '每一只星罐都是未知的礼物，每一个奇迹都由我们亲手开启。',
-    storyTheme: 'purple',
+    storyTheme: 'star',
     night: true,
     startSun: 0,
     sunInterval: 0,
