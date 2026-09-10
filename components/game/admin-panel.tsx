@@ -157,6 +157,7 @@ export function AdminPanel({
       {editingId && (
         <EditDialog
           userId={editingId}
+          theme={currentTheme}
           onClose={() => setEditingId(null)}
           onSaved={() => {
             setEditingId(null)
@@ -577,10 +578,12 @@ function ProgressMini({ label, unlocked, cleared, total }: { label: string; unlo
 /* ── 编辑弹层：查看 / 修改用户通关数与用时 ── */
 function EditDialog({
   userId,
+  theme,
   onClose,
   onSaved,
 }: {
   userId: string
+  theme?: SiteTheme
   onClose: () => void
   onSaved: () => void
 }) {
@@ -589,6 +592,51 @@ function EditDialog({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<'pvz' | 'm3' | 'snake'>('pvz')
+
+  // 状态栏沉浸式同步与弹窗收起后 WebKit 状态栏色彩强制恢复（彻底解决 iOS 灵动岛变灰无法变回问题）
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow
+    const scrollYBefore = window.scrollY || document.documentElement.scrollTop || 0
+    document.body.style.overflow = 'hidden'
+
+    const targetThemeColor =
+      theme === 'qixi'
+        ? '#fb7185'
+        : theme === 'autumn'
+        ? '#f59e0b'
+        : '#8ed17a'
+
+    // 弹层开启时：将状态栏与遮罩沉浸一致（深色遮罩沉浸）
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) {
+      meta.setAttribute('content', '#1e293b')
+    }
+
+    return () => {
+      // 弹层收起时：
+      // 1. 失焦可能被软键盘激活的 input 元素，确保 iOS 软键盘彻底降下
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+      }
+      // 2. 恢复 body 滚动
+      document.body.style.overflow = originalOverflow
+
+      // 3. 关键：还原滚动位置到进入弹窗前的原始位置（防止软键盘抬升导致的视口位移残留触发 iOS 永久暗灰状态栏）
+      window.scrollTo({ top: scrollYBefore, left: 0, behavior: 'instant' })
+      document.documentElement.scrollTop = scrollYBefore
+      document.body.scrollTop = scrollYBefore
+
+      // 4. 关键：更新 meta theme-color，触发 WebKit 状态栏与灵动岛从深色重绘为当前主题色
+      if (meta) {
+        meta.setAttribute('content', targetThemeColor)
+        // 双保险：延时 300ms 避开 iOS Safari 软键盘收起的弹簧物理动画后再确认一次
+        setTimeout(() => {
+          window.scrollTo({ top: scrollYBefore, left: 0, behavior: 'instant' })
+          meta.setAttribute('content', targetThemeColor)
+        }, 320)
+      }
+    }
+  }, [theme])
 
   // 加载完整进度
   useEffect(() => {
@@ -623,7 +671,7 @@ function EditDialog({
   }, [progress, userId, onSaved])
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-foreground/55 sm:items-center">
+    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 backdrop-blur-xs sm:items-center">
       <div className="flex max-h-[90dvh] w-full max-w-md flex-col rounded-t-3xl bg-background shadow-xl sm:rounded-3xl">
         {/* 头部 */}
         <header className="flex items-center gap-2 border-b border-border px-5 py-4">

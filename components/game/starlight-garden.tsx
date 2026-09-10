@@ -249,10 +249,14 @@ const MISSIONS: Mission[] = [
 interface VirtualJoystickProps {
   onDirection: (dir: Direction) => void
   currentDir: Direction
+  intendedDir?: Direction
   mapTheme: SnakeMapThemeConfig
 }
 
-function VirtualJoystick({ onDirection, currentDir, mapTheme }: VirtualJoystickProps) {
+type ControlMode = 'joystick' | 'dpad'
+
+function VirtualJoystick({ onDirection, currentDir, intendedDir, mapTheme }: VirtualJoystickProps) {
+  const [mode, setMode] = useState<ControlMode>('joystick')
   const [knobOffset, setKnobOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [activeDir, setActiveDir] = useState<Direction | null>(null)
   const baseRef = useRef<HTMLDivElement>(null)
@@ -268,7 +272,7 @@ function VirtualJoystick({ onDirection, currentDir, mapTheme }: VirtualJoystickP
     const dx = clientX - centerX
     const dy = clientY - centerY
     const dist = Math.hypot(dx, dy)
-    const maxRadius = 30 // 摇杆最大偏移半径
+    const maxRadius = 36 // 摇杆最大行程扩大至 36px，手感更饱满细腻
 
     let clampedX = dx
     let clampedY = dy
@@ -279,17 +283,17 @@ function VirtualJoystick({ onDirection, currentDir, mapTheme }: VirtualJoystickP
 
     setKnobOffset({ x: clampedX, y: clampedY })
 
-    // 死区判断（大于 8px 时计算方向）
-    if (dist > 8) {
+    // 死区判定与 14° 角滞后区间，彻底杜绝斜角推移时在两轴之间震颤跳变
+    if (dist > 10) {
       const angle = (Math.atan2(dy, dx) * 180) / Math.PI
-      let dir: Direction = 'RIGHT'
-      if (angle >= -45 && angle <= 45) {
+      let dir: Direction = activeDirRef.current || 'RIGHT'
+      if (angle >= -38 && angle <= 38) {
         dir = 'RIGHT'
-      } else if (angle > 45 && angle < 135) {
+      } else if (angle >= 52 && angle <= 128) {
         dir = 'DOWN'
-      } else if (angle >= 135 || angle <= -135) {
+      } else if (angle >= 142 || angle <= -142) {
         dir = 'LEFT'
-      } else {
+      } else if (angle >= -128 && angle <= -52) {
         dir = 'UP'
       }
 
@@ -333,111 +337,239 @@ function VirtualJoystick({ onDirection, currentDir, mapTheme }: VirtualJoystickP
     setActiveDir(null)
   }
 
+  // 综合判定高亮方向（即时意图优先，其次当前执行方向）
+  const highlightDir = activeDir || intendedDir || currentDir
+
   return (
     <div className="flex flex-col items-center select-none touch-none">
-      {/* 摇杆底座 */}
-      <div
-        ref={baseRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        className={cn(
-          'relative size-24 sm:size-28 rounded-full border-2 backdrop-blur-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center transition-shadow',
-          mapTheme.joystickBaseBorder,
-          mapTheme.joystickBaseBg,
-          mapTheme.joystickGlow,
-        )}
-      >
-        {/* 四向刻度与高亮箭头（支持直接点按，亦支持拖动摇杆） */}
+      {/* 顶部微型控制模式切换器 */}
+      <div className="flex items-center rounded-full bg-black/60 p-0.5 border border-white/15 backdrop-blur-md mb-1.5 shadow-md">
         <button
           type="button"
           onPointerDown={(e) => {
             e.stopPropagation()
-            setActiveDir('UP')
-            onDirection('UP')
+            setMode('joystick')
           }}
           className={cn(
-            'absolute top-0.5 inset-x-0 mx-auto flex h-7 w-9 items-center justify-center transition-transform active:scale-125 touch-none z-10',
-            activeDir === 'UP' || currentDir === 'UP'
-              ? cn(mapTheme.joystickArrowActive, 'scale-125')
-              : 'text-white/30 hover:text-white/70',
+            'px-2 py-0.5 rounded-full text-[10px] font-extrabold transition-all',
+            mode === 'joystick'
+              ? 'bg-white/25 text-white shadow-xs'
+              : 'text-white/50 hover:text-white/80',
           )}
-          aria-label="向上"
+          title="虚拟模拟摇杆模式"
         >
-          <ArrowUp className="size-4" />
+          🕹️ 摇杆
         </button>
         <button
           type="button"
           onPointerDown={(e) => {
             e.stopPropagation()
-            setActiveDir('DOWN')
-            onDirection('DOWN')
+            setMode('dpad')
           }}
           className={cn(
-            'absolute bottom-0.5 inset-x-0 mx-auto flex h-7 w-9 items-center justify-center transition-transform active:scale-125 touch-none z-10',
-            activeDir === 'DOWN' || currentDir === 'DOWN'
-              ? cn(mapTheme.joystickArrowActive, 'scale-125')
-              : 'text-white/30 hover:text-white/70',
+            'px-2 py-0.5 rounded-full text-[10px] font-extrabold transition-all',
+            mode === 'dpad'
+              ? 'bg-white/25 text-white shadow-xs'
+              : 'text-white/50 hover:text-white/80',
           )}
-          aria-label="向下"
+          title="街机十字按键模式"
         >
-          <ArrowDown className="size-4" />
+          🎮 十字键
         </button>
-        <button
-          type="button"
-          onPointerDown={(e) => {
-            e.stopPropagation()
-            setActiveDir('LEFT')
-            onDirection('LEFT')
-          }}
-          className={cn(
-            'absolute left-0.5 inset-y-0 my-auto flex h-9 w-7 items-center justify-center transition-transform active:scale-125 touch-none z-10',
-            activeDir === 'LEFT' || currentDir === 'LEFT'
-              ? cn(mapTheme.joystickArrowActive, 'scale-125')
-              : 'text-white/30 hover:text-white/70',
-          )}
-          aria-label="向左"
-        >
-          <ArrowLeft className="size-4" />
-        </button>
-        <button
-          type="button"
-          onPointerDown={(e) => {
-            e.stopPropagation()
-            setActiveDir('RIGHT')
-            onDirection('RIGHT')
-          }}
-          className={cn(
-            'absolute right-0.5 inset-y-0 my-auto flex h-9 w-7 items-center justify-center transition-transform active:scale-125 touch-none z-10',
-            activeDir === 'RIGHT' || currentDir === 'RIGHT'
-              ? cn(mapTheme.joystickArrowActive, 'scale-125')
-              : 'text-white/30 hover:text-white/70',
-          )}
-          aria-label="向右"
-        >
-          <ArrowRight className="size-4" />
-        </button>
+      </div>
 
-        {/* 内部同心装饰环 */}
-        <div className="size-12 rounded-full border border-white/10 pointer-events-none" />
+      {mode === 'joystick' ? (
+        /* 模式一：360° 发光模拟摇杆（加大底座与舒适滑块） */
+        <div
+          ref={baseRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className={cn(
+            'relative size-28 sm:size-32 rounded-full border-2 backdrop-blur-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center transition-shadow shadow-xl',
+            mapTheme.joystickBaseBorder,
+            mapTheme.joystickBaseBg,
+            mapTheme.joystickGlow,
+          )}
+        >
+          {/* 四向触控箭头指示器 */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              setActiveDir('UP')
+              onDirection('UP')
+            }}
+            className={cn(
+              'absolute top-1 inset-x-0 mx-auto flex h-8 w-10 items-center justify-center transition-transform active:scale-125 touch-none z-10',
+              highlightDir === 'UP'
+                ? cn(mapTheme.joystickArrowActive, 'scale-125')
+                : 'text-white/35 hover:text-white/75',
+            )}
+            aria-label="向上"
+          >
+            <ArrowUp className="size-5" />
+          </button>
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              setActiveDir('DOWN')
+              onDirection('DOWN')
+            }}
+            className={cn(
+              'absolute bottom-1 inset-x-0 mx-auto flex h-8 w-10 items-center justify-center transition-transform active:scale-125 touch-none z-10',
+              highlightDir === 'DOWN'
+                ? cn(mapTheme.joystickArrowActive, 'scale-125')
+                : 'text-white/35 hover:text-white/75',
+            )}
+            aria-label="向下"
+          >
+            <ArrowDown className="size-5" />
+          </button>
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              setActiveDir('LEFT')
+              onDirection('LEFT')
+            }}
+            className={cn(
+              'absolute left-1 inset-y-0 my-auto flex h-10 w-8 items-center justify-center transition-transform active:scale-125 touch-none z-10',
+              highlightDir === 'LEFT'
+                ? cn(mapTheme.joystickArrowActive, 'scale-125')
+                : 'text-white/35 hover:text-white/75',
+            )}
+            aria-label="向左"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              setActiveDir('RIGHT')
+              onDirection('RIGHT')
+            }}
+            className={cn(
+              'absolute right-1 inset-y-0 my-auto flex h-10 w-8 items-center justify-center transition-transform active:scale-125 touch-none z-10',
+              highlightDir === 'RIGHT'
+                ? cn(mapTheme.joystickArrowActive, 'scale-125')
+                : 'text-white/35 hover:text-white/75',
+            )}
+            aria-label="向右"
+          >
+            <ArrowRight className="size-5" />
+          </button>
 
-        {/* 摇杆中心滑块（Knob） */}
+          {/* 内部同心装饰环 */}
+          <div className="size-14 rounded-full border border-white/10 pointer-events-none" />
+
+          {/* 摇杆中心滑块（Knob） */}
+          <div
+            className={cn(
+              'absolute size-11 rounded-full border-2 shadow-[0_4px_14px_rgba(0,0,0,0.7)] pointer-events-none flex items-center justify-center',
+              mapTheme.joystickKnobBorder,
+              mapTheme.joystickKnobBg,
+            )}
+            style={{
+              transform: `translate(${knobOffset.x}px, ${knobOffset.y}px)`,
+              transition: pointerIdRef.current === null ? 'transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
+            }}
+          >
+            {/* 滑块凹陷与手感凸点 */}
+            <div className="size-4 rounded-full bg-white/40 border border-white/60 shadow-inner" />
+          </div>
+        </div>
+      ) : (
+        /* 模式二：经典掌机十字方向键 (Arcade D-Pad - 零误触点按神器) */
         <div
           className={cn(
-            'absolute size-10 rounded-full border-2 shadow-[0_4px_12px_rgba(0,0,0,0.6)] pointer-events-none flex items-center justify-center',
-            mapTheme.joystickKnobBorder,
-            mapTheme.joystickKnobBg,
+            'relative size-28 sm:size-32 rounded-3xl border-2 backdrop-blur-md p-1 flex items-center justify-center shadow-xl transition-shadow',
+            mapTheme.joystickBaseBorder,
+            mapTheme.joystickBaseBg,
+            mapTheme.joystickGlow,
           )}
-          style={{
-            transform: `translate(${knobOffset.x}px, ${knobOffset.y}px)`,
-            transition: pointerIdRef.current === null ? 'transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none',
-          }}
         >
-          {/* 滑块凹陷与手感凸点 */}
-          <div className="size-3.5 rounded-full bg-white/40 border border-white/60 shadow-inner" />
+          {/* 上键 */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onDirection('UP')
+            }}
+            className={cn(
+              'absolute top-1 inset-x-0 mx-auto flex h-9 w-10 items-center justify-center rounded-t-xl border border-white/10 transition-all active:scale-90',
+              highlightDir === 'UP'
+                ? cn(mapTheme.joystickArrowActive, 'bg-white/25 scale-105 shadow-md')
+                : 'bg-black/40 text-white/70 hover:text-white',
+            )}
+            aria-label="向上"
+          >
+            <ArrowUp className="size-4.5" />
+          </button>
+
+          {/* 下键 */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onDirection('DOWN')
+            }}
+            className={cn(
+              'absolute bottom-1 inset-x-0 mx-auto flex h-9 w-10 items-center justify-center rounded-b-xl border border-white/10 transition-all active:scale-90',
+              highlightDir === 'DOWN'
+                ? cn(mapTheme.joystickArrowActive, 'bg-white/25 scale-105 shadow-md')
+                : 'bg-black/40 text-white/70 hover:text-white',
+            )}
+            aria-label="向下"
+          >
+            <ArrowDown className="size-4.5" />
+          </button>
+
+          {/* 左键 */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onDirection('LEFT')
+            }}
+            className={cn(
+              'absolute left-1 inset-y-0 my-auto flex h-10 w-9 items-center justify-center rounded-l-xl border border-white/10 transition-all active:scale-90',
+              highlightDir === 'LEFT'
+                ? cn(mapTheme.joystickArrowActive, 'bg-white/25 scale-105 shadow-md')
+                : 'bg-black/40 text-white/70 hover:text-white',
+            )}
+            aria-label="向左"
+          >
+            <ArrowLeft className="size-4.5" />
+          </button>
+
+          {/* 右键 */}
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onDirection('RIGHT')
+            }}
+            className={cn(
+              'absolute right-1 inset-y-0 my-auto flex h-10 w-9 items-center justify-center rounded-r-xl border border-white/10 transition-all active:scale-90',
+              highlightDir === 'RIGHT'
+                ? cn(mapTheme.joystickArrowActive, 'bg-white/25 scale-105 shadow-md')
+                : 'bg-black/40 text-white/70 hover:text-white',
+            )}
+            aria-label="向右"
+          >
+            <ArrowRight className="size-4.5" />
+          </button>
+
+          {/* 中心金属轴心 */}
+          <div className="size-8 rounded-lg bg-black/70 border border-white/20 shadow-inner flex items-center justify-center pointer-events-none">
+            <div className="size-2 rounded-full bg-white/40" />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -533,6 +665,7 @@ export function StarlightGarden({
   const dirRef = useRef<Direction>('RIGHT')
   const dirQueueRef = useRef<Direction[]>([])
   const [dir, setDir] = useState<Direction>('RIGHT')
+  const [intendedDir, setIntendedDir] = useState<Direction>('RIGHT')
 
   const foodsRef = useRef<FoodItem[]>([])
   const [foods, setFoods] = useState<FoodItem[]>([])
@@ -629,7 +762,7 @@ export function StarlightGarden({
     return freeCells[Math.floor(Math.random() * freeCells.length)]
   }, [])
 
-  /* 智能转向队列（平滑缓冲最多 2 个指令，100% 杜绝反向撞颈暴毙） */
+  /* 智能转向队列（平滑缓冲最多 2 个指令，100% 杜绝反向撞颈暴毙，支持即时意图响应与微震动） */
   const queueDirection = useCallback((newDir: Direction) => {
     if (isGameOverRef.current || isPausedRef.current) return
     const lastDir =
@@ -646,35 +779,55 @@ export function StarlightGarden({
     if (!isOpposite && newDir !== lastDir) {
       if (dirQueueRef.current.length < 2) {
         dirQueueRef.current.push(newDir)
+      } else {
+        // 如果连续快速输入，将最新未消费指令更新为最新意图，杜绝漏键
+        dirQueueRef.current[dirQueueRef.current.length - 1] = newDir
+      }
+      setIntendedDir(newDir)
+      // 触感反馈
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try { navigator.vibrate(10) } catch {}
       }
     }
   }, [])
 
-  /* 全屏任意位置滑动手势操控 (Full-screen Swipe Gesture) */
+  /* 全屏任意位置滑动手势操控 (带主副轴防飘移识别与连续拐弯状态机) */
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null)
+  const swipeLastDirRef = useRef<Direction | null>(null)
 
   const handleBoardPointerDown = (e: React.PointerEvent) => {
     swipeStartRef.current = { x: e.clientX, y: e.clientY }
+    swipeLastDirRef.current = null
   }
 
   const handleBoardPointerMove = (e: React.PointerEvent) => {
     if (!swipeStartRef.current) return
     const dx = e.clientX - swipeStartRef.current.x
     const dy = e.clientY - swipeStartRef.current.y
-    const dist = Math.hypot(dx, dy)
-    // 灵敏滑动识别（16px 触发，轻触即转，极其顺手）
-    if (dist >= 16) {
-      if (Math.abs(dx) > Math.abs(dy)) {
-        queueDirection(dx > 0 ? 'RIGHT' : 'LEFT')
-      } else {
-        queueDirection(dy > 0 ? 'DOWN' : 'UP')
+    const absX = Math.abs(dx)
+    const absY = Math.abs(dy)
+
+    // 触发阈值 20px，且要求主轴位移至少是副轴的 1.25 倍（彻底消灭大拇指圆弧滑动时的垂直/水平侧向飘移误触）
+    if (absX >= 20 || absY >= 20) {
+      let turn: Direction | null = null
+      if (absX > absY * 1.25) {
+        turn = dx > 0 ? 'RIGHT' : 'LEFT'
+      } else if (absY > absX * 1.25) {
+        turn = dy > 0 ? 'DOWN' : 'UP'
       }
-      swipeStartRef.current = { x: e.clientX, y: e.clientY }
+
+      if (turn && turn !== swipeLastDirRef.current) {
+        queueDirection(turn)
+        swipeLastDirRef.current = turn
+        // 将原点推移至当前点，支持不抬手流畅画连续拐弯（如连续 L 弯）
+        swipeStartRef.current = { x: e.clientX, y: e.clientY }
+      }
     }
   }
 
   const handleBoardPointerUp = () => {
     swipeStartRef.current = null
+    swipeLastDirRef.current = null
   }
 
   /* 重置开始游戏 */
@@ -691,6 +844,7 @@ export function StarlightGarden({
     dirRef.current = 'RIGHT'
     dirQueueRef.current = []
     setDir('RIGHT')
+    setIntendedDir('RIGHT')
 
     scoreRef.current = 0
     setScore(0)
@@ -837,6 +991,7 @@ export function StarlightGarden({
       const nextDir = dirQueueRef.current.shift() ?? dirRef.current
       dirRef.current = nextDir
       setDir(nextDir)
+      setIntendedDir(dirQueueRef.current[0] ?? nextDir)
 
       const curSnake = snakeRef.current
       const head = curSnake[0]
@@ -1303,23 +1458,23 @@ export function StarlightGarden({
                     {/* 头顶花蕊 */}
                     <span className="absolute -top-1.5 size-2 rounded-full bg-amber-300 border border-[#2d3a22]" />
 
-                    {/* 大眼灵动高光 */}
+                    {/* 大眼灵动高光（实时看向即时意图方向，提供 0ms 视觉反馈） */}
                     <div className="flex gap-1.5">
                       <span className="relative size-2 rounded-full bg-white border border-[#2d3a22]">
                         <span
-                          className="absolute size-1 rounded-full bg-black"
+                          className="absolute size-1 rounded-full bg-black transition-all duration-75"
                           style={{
-                            top: dir === 'UP' ? 0 : dir === 'DOWN' ? 3 : 1,
-                            left: dir === 'LEFT' ? 0 : dir === 'RIGHT' ? 3 : 1,
+                            top: (intendedDir || dir) === 'UP' ? 0 : (intendedDir || dir) === 'DOWN' ? 3 : 1,
+                            left: (intendedDir || dir) === 'LEFT' ? 0 : (intendedDir || dir) === 'RIGHT' ? 3 : 1,
                           }}
                         />
                       </span>
                       <span className="relative size-2 rounded-full bg-white border border-[#2d3a22]">
                         <span
-                          className="absolute size-1 rounded-full bg-black"
+                          className="absolute size-1 rounded-full bg-black transition-all duration-75"
                           style={{
-                            top: dir === 'UP' ? 0 : dir === 'DOWN' ? 3 : 1,
-                            left: dir === 'LEFT' ? 0 : dir === 'RIGHT' ? 3 : 1,
+                            top: (intendedDir || dir) === 'UP' ? 0 : (intendedDir || dir) === 'DOWN' ? 3 : 1,
+                            left: (intendedDir || dir) === 'LEFT' ? 0 : (intendedDir || dir) === 'RIGHT' ? 3 : 1,
                           }}
                         />
                       </span>
@@ -1369,11 +1524,12 @@ export function StarlightGarden({
             </div>
           )}
 
-          {/* 左下角：悬浮半透明发光触控摇杆 HUD */}
+          {/* 左下角：悬浮双模触控控制器 HUD (摇杆 / 十字键) */}
           <div className="absolute bottom-2.5 left-2.5 z-30 pointer-events-auto select-none touch-none">
             <VirtualJoystick
               onDirection={queueDirection}
               currentDir={dir}
+              intendedDir={intendedDir}
               mapTheme={mapTheme}
             />
           </div>
@@ -1384,6 +1540,9 @@ export function StarlightGarden({
               onPointerDown={(e) => {
                 e.stopPropagation()
                 setDashActive(true)
+                if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                  try { navigator.vibrate(15) } catch {}
+                }
               }}
               onPointerUp={(e) => {
                 e.stopPropagation()
