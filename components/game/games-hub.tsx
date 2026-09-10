@@ -108,21 +108,21 @@ export function GamesHub({
         </li>
         <li className="sm:col-span-2">
           <GameCard
-            title="星愿花园"
-            subtitle="收集星露，唤醒月眠花"
+            title="星愿花园 · 萌藤贪吃蛇"
+            subtitle="灵动藤蔓，吞食阳光与暗影"
             icon={<Sparkles className="size-5" />}
             cleared={starlightBestScore > 0 ? 1 : 0}
             total={1}
             unlocked={1}
             onClick={onSelectStarlightGarden}
-            progressLabel={starlightBestScore > 0 ? `最高星光 ${starlightBestScore}` : '一场月光里的小冒险'}
-            cardClassName="border-violet-200 bg-[linear-gradient(135deg,#fff8e8_0%,#f8edff_48%,#ebefff_100%)] hover:border-violet-400"
+            progressLabel={starlightBestScore > 0 ? `最高纪录 ${starlightBestScore} 分` : '控制萌藤灵蛇，吞吃阳光与僵尸！'}
+            cardClassName="border-emerald-200 bg-[linear-gradient(135deg,#f0fdf4_0%,#ecfdf5_48%,#fefce8_100%)] hover:border-emerald-400"
             decoration={
-              <div className="flex items-end gap-2 text-4xl sm:text-5xl" aria-hidden="true">
-                <span className="origin-bottom animate-pulse [animation-duration:2.8s]">✦</span>
-                <span className="origin-bottom animate-bounce [animation-duration:2.2s]">🌙</span>
-                <span className="origin-bottom animate-pulse [animation-duration:2.5s]">🌸</span>
-                <span className="origin-bottom animate-bounce [animation-duration:2.7s]">🫧</span>
+              <div className="flex items-end gap-2" aria-hidden="true">
+                <SunSprite className="w-12 anim-sun sm:w-16" />
+                <PlantSprite id="sunflower" className="w-12 anim-bob sm:w-16" />
+                <PlantSprite id="cherry" className="w-12 anim-bob sm:w-16" />
+                <ZombieSprite id="imp" className="w-10 anim-shamble sm:w-14 opacity-90" />
               </div>
             }
           />

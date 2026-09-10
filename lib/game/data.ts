@@ -523,4 +523,23 @@ export const LEVELS: Level[] = [
       ...group(135, 1.5, 'brute', [2, 0, 4, 1, 3]),
     ],
   },
+  {
+    id: 16,
+    name: '星愿宝瓶',
+    subtitle: '夜晚 · 禅境砸罐寻宝',
+    hint: '隐藏神秘关卡！敲碎星愿宝瓶，释放被封印的植物与僵尸。善用手牌布防，小推车是最后防线！',
+    message: '罐子破裂的一瞬，漫天星光倾泻而出。不管前方藏着多少未知，我们都会并肩破解。',
+    story: '院子里摆满了神秘的星愿陶罐。你轻轻敲碎其中一个，跳出了一只向日葵；我又敲碎一个，钻出了一只呆萌的小僵尸。相视一笑之间，那些未知的冒险，都变成了我们最甜的默契。',
+    storyHighlight: '每一只星罐都是未知的礼物，每一个奇迹都由我们亲手开启。',
+    storyTheme: 'purple',
+    night: true,
+    startSun: 0,
+    sunInterval: 0,
+    plants: ['peashooter', 'snowpea', 'repeater', 'wallnut', 'cherry'],
+    finalWaveAt: 60,
+    spawns: [
+      ...group(10, 2, 'normal', [0, 1, 2, 3]),
+      ...group(30, 2, 'bucket', [1, 2]),
+    ],
+  },
 ]

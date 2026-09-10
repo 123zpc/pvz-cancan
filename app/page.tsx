@@ -13,6 +13,7 @@ import { Match3Select } from '@/components/game/match3-select'
 import { MusicToggle } from '@/components/game/music-toggle'
 import { QixiDecor, QixiGreeting } from '@/components/game/qixi-theme'
 import { StarlightGarden } from '@/components/game/starlight-garden'
+import { VasebreakerLevel } from '@/components/game/vasebreaker-level'
 import { audio } from '@/lib/game/audio'
 import {
   ADMIN_USER_ID,
@@ -99,10 +100,17 @@ export default function Page() {
   const [m3LevelBestTimes, setM3LevelBestTimes] = useState<Record<number, number>>({})
   /** 星愿花园历史最高分：随 Progress 写入后端，离线时保留在本地兜底。 */
   const [starlightBestScore, setStarlightBestScore] = useState(0)
+  /** 客户端挂载标记，防止 SSR 与客户端首屏 Hydration 不匹配 */
+  const [mounted, setMounted] = useState(false)
   /** 七夕限定主题（管理后台可开关） */
-  const [qixiOn, setQixiOn] = useState<boolean>(loadQixiCache)
+  const [qixiOn, setQixiOn] = useState<boolean>(false)
 
   const isAdmin = userId === ADMIN_USER_ID
+
+  useEffect(() => {
+    setMounted(true)
+    setQixiOn(loadQixiCache())
+  }, [])
 
   /** 同步七夕主题：写状态 + 本地缓存 + html 属性 */
   const applyQixi = useCallback((on: boolean) => {
@@ -258,8 +266,8 @@ export default function Page() {
     setMatch3Level(null)
   }, [])
 
-  // 七夕装饰：仅非游戏界面（battle/match3/星愿花园保持场景清爽）
-  const showQixiDecor = qixiOn && view !== 'battle' && view !== 'match3' && view !== 'starlight-garden'
+  // 七夕装饰：仅非游戏界面且客户端挂载后展示（避免 SSR Hydration Mismatch）
+  const showQixiDecor = mounted && qixiOn && view !== 'battle' && view !== 'match3' && view !== 'starlight-garden'
 
   // 密码门
   if (!authed) {
@@ -319,6 +327,14 @@ export default function Page() {
   }
 
   if (view === 'battle' && level) {
+    if (level.id === 16) {
+      return (
+        <VasebreakerLevel
+          onExit={() => setView('levels')}
+          onWin={handleWin}
+        />
+      )
+    }
     return (
       <Battle
         level={level}

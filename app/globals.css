@@ -421,320 +421,152 @@ html[data-qixi='on'] body {
   animation: m3-rank-flash 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* ── 星愿花园：原创童话夜景 ── */
+/* ── 星愿花园：PVZ 经典星夜禅境与街机特效 ── */
 .starlight-shell {
   background:
-    radial-gradient(circle at 50% 92%, rgba(229, 165, 255, 0.3), transparent 30%),
-    linear-gradient(180deg, #413078 0%, #2f2365 48%, #21184d 100%);
+    radial-gradient(ellipse at 50% 0%, rgba(88, 70, 150, 0.45) 0%, transparent 60%),
+    radial-gradient(circle at 20% 90%, rgba(46, 92, 135, 0.3) 0%, transparent 45%),
+    linear-gradient(180deg, #10152b 0%, #151d38 45%, #0f1629 100%);
 }
-.starlight-sky,
-.starlight-stars,
-.starlight-hill,
-.starlight-trees,
-.starlight-cloud,
-.starlight-moon {
+
+.starlight-night-stars {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
-  position: absolute;
-}
-.starlight-sky {
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 77% 18%, rgba(255, 239, 174, 0.18), transparent 18%),
-    radial-gradient(ellipse at 24% 35%, rgba(127, 167, 255, 0.2), transparent 27%),
-    linear-gradient(180deg, rgba(111, 86, 188, 0.35), transparent 56%);
-}
-.starlight-stars {
-  inset: 0;
   overflow: hidden;
-}
-.starlight-star {
-  position: absolute;
-  display: block;
-  width: 3px;
-  height: 3px;
-  border-radius: 999px;
-  background: #fff9d9;
-  box-shadow: 0 0 7px 2px rgba(255, 241, 175, 0.56);
-  animation-name: starlight-twinkle;
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-}
-.starlight-moon {
-  right: 7%;
-  top: 9%;
-  width: clamp(70px, 12vw, 112px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 32%, #fffdf0 0 4%, #fff6c9 24%, #f3d88d 72%);
-  box-shadow: 0 0 0 9px rgba(255, 242, 189, 0.06), 0 0 45px 7px rgba(255, 235, 163, 0.42);
-}
-.starlight-moon::after,
-.starlight-moon span {
-  position: absolute;
-  content: '';
-  border-radius: 50%;
-  background: rgba(209, 172, 114, 0.2);
-}
-.starlight-moon::after { width: 17%; height: 17%; left: 28%; top: 28%; }
-.starlight-moon span { width: 12%; height: 12%; right: 26%; bottom: 25%; }
-.starlight-cloud {
-  width: 145px;
-  height: 31px;
-  border-radius: 999px;
-  background: rgba(203, 196, 255, 0.13);
-  filter: blur(1px);
-}
-.starlight-cloud::before,
-.starlight-cloud::after {
-  position: absolute;
-  content: '';
-  bottom: 0;
-  border-radius: 50%;
-  background: inherit;
-}
-.starlight-cloud::before { width: 54px; height: 54px; left: 26px; }
-.starlight-cloud::after { width: 42px; height: 42px; right: 23px; }
-.starlight-cloud-one { top: 24%; left: -34px; animation: starlight-drift 16s ease-in-out infinite alternate; }
-.starlight-cloud-two { top: 16%; right: 23%; transform: scale(0.65); opacity: 0.65; animation: starlight-drift 21s ease-in-out -7s infinite alternate-reverse; }
-.starlight-hill {
-  left: -8%;
-  right: -8%;
-  bottom: -8%;
-  height: 42%;
-  border-radius: 50% 50% 0 0 / 22% 22% 0 0;
-}
-.starlight-hill-back {
-  bottom: 13%;
-  height: 31%;
-  background: #2a235c;
-  box-shadow: inset 0 15px 28px rgba(133, 113, 218, 0.16);
-  transform: rotate(-2deg) scaleX(1.08);
-}
-.starlight-hill-front {
   background:
-    radial-gradient(ellipse at 23% 21%, rgba(161, 232, 180, 0.36) 0 2%, transparent 3%),
-    radial-gradient(ellipse at 74% 32%, rgba(255, 190, 224, 0.36) 0 2%, transparent 3%),
-    linear-gradient(180deg, #3a3673, #242257 87%);
-  box-shadow: inset 0 18px 24px rgba(107, 185, 149, 0.12);
+    radial-gradient(1px 1px at 15% 12%, #fff 100%, transparent),
+    radial-gradient(1.5px 1.5px at 28% 34%, #ffefb8 100%, transparent),
+    radial-gradient(1px 1px at 45% 18%, #c5e1ff 100%, transparent),
+    radial-gradient(2px 2px at 62% 28%, #fff4be 100%, transparent),
+    radial-gradient(1px 1px at 78% 14%, #ffcbe3 100%, transparent),
+    radial-gradient(1.5px 1.5px at 89% 42%, #d2c4ff 100%, transparent),
+    radial-gradient(1px 1px at 94% 22%, #fff 100%, transparent),
+    radial-gradient(2px 2px at 35% 55%, #ffe6a0 100%, transparent),
+    radial-gradient(1px 1px at 72% 64%, #cce5ff 100%, transparent);
+  opacity: 0.85;
 }
-.starlight-trees {
-  inset: auto 0 3% 0;
-  height: 42%;
-  opacity: 0.82;
-}
-.starlight-trees i {
+
+.starlight-moon-orb {
   position: absolute;
-  bottom: 0;
-  width: 11px;
-  height: 35%;
-  border-radius: 50% 50% 0 0;
-  background: #20204e;
-  transform-origin: bottom;
+  right: 6%;
+  top: 4%;
+  width: clamp(64px, 10vw, 92px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fffdf4 0%, #ffeaad 45%, #e1b15c 100%);
+  box-shadow: 0 0 35px 10px rgba(255, 230, 140, 0.42), 0 0 70px 20px rgba(175, 140, 255, 0.25);
+  pointer-events: none;
 }
-.starlight-trees i::before,
-.starlight-trees i::after {
-  position: absolute;
+
+.starlight-moon-orb::after {
   content: '';
-  width: 55px;
-  aspect-ratio: 1;
-  border-radius: 45% 55% 43% 57%;
-  background: linear-gradient(140deg, #55518e, #2a2a62 72%);
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 245, 195, 0.3);
+  animation: starlight-moon-halo 4s ease-in-out infinite alternate;
 }
-.starlight-trees i::before { bottom: 25%; left: -22px; }
-.starlight-trees i::after { bottom: 48%; left: -11px; transform: scale(0.74); }
-.starlight-trees i:nth-child(1) { left: 2%; height: 47%; transform: rotate(-3deg); }
-.starlight-trees i:nth-child(2) { left: 15%; height: 34%; transform: scale(0.75); }
-.starlight-trees i:nth-child(3) { right: 5%; height: 51%; transform: rotate(4deg); }
-.starlight-trees i:nth-child(4) { right: 21%; height: 36%; transform: scale(0.8); }
-.starlight-trees i:nth-child(5) { left: 34%; height: 30%; transform: scale(0.65); opacity: 0.7; }
 
-.starlight-flower {
-  position: relative;
-  z-index: 1;
-  width: 176px;
-  height: 235px;
-  transform-origin: bottom center;
-  filter: drop-shadow(0 14px 10px rgba(13, 11, 45, 0.38));
-  transition: filter 0.6s ease;
+@keyframes starlight-moon-halo {
+  0% { transform: scale(0.96); opacity: 0.4; }
+  100% { transform: scale(1.08); opacity: 0.8; }
 }
-.starlight-flower-glow {
-  position: absolute;
-  left: 50%;
-  top: 23px;
-  width: 126px;
-  height: 126px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 237, 161, 0.13), transparent 67%);
-  transform: translateX(-50%) scale(0.7);
-  transition: transform 0.7s ease, background 0.7s ease;
-}
-.starlight-stem {
-  position: absolute;
-  bottom: 0;
-  left: 84px;
-  width: 11px;
-  height: 120px;
-  border-radius: 100% 100% 40% 40%;
-  background: linear-gradient(90deg, #406e63, #8ac890 46%, #315d5b);
-  transform: rotate(4deg);
-}
-.starlight-leaf {
-  position: absolute;
-  bottom: 68px;
-  width: 58px;
-  height: 25px;
-  border-radius: 100% 0 100% 0;
-  background: linear-gradient(140deg, #a8e69d, #4c9371 66%);
-}
-.starlight-leaf-left { left: 35px; transform: rotate(-32deg) scaleX(-1); }
-.starlight-leaf-right { right: 23px; bottom: 43px; transform: rotate(33deg); }
-.starlight-petal {
-  position: absolute;
-  left: 50%;
-  top: 26px;
-  width: 72px;
-  height: 101px;
-  border-radius: 64% 36% 60% 40% / 64% 44% 56% 36%;
-  background: linear-gradient(145deg, #c9c1ff, #846ab7 66%, #5b438d);
-  box-shadow: inset 5px 6px 12px rgba(255,255,255,0.28), inset -8px -7px 12px rgba(59, 35, 110, 0.18);
-  transform-origin: 50% 88%;
-  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1), background 0.75s ease;
-}
-.starlight-petal-a { transform: translateX(-50%) rotate(-22deg) translate(-23px, 14px) scale(0.74); }
-.starlight-petal-b { transform: translateX(-50%) rotate(22deg) translate(23px, 14px) scaleX(-0.74); }
-.starlight-petal-c { transform: translateX(-50%) rotate(-7deg) translate(-14px, -7px) scale(0.73); }
-.starlight-petal-d { transform: translateX(-50%) rotate(7deg) translate(14px, -7px) scaleX(-0.73); }
-.starlight-flower-face {
-  position: absolute;
-  left: 50%;
-  top: 76px;
-  z-index: 2;
-  width: 72px;
-  aspect-ratio: 1;
-  border-radius: 49% 51% 48% 52%;
-  background: radial-gradient(circle at 31% 30%, #fffef5 0 3%, #ffeac2 37%, #e6ab6a 100%);
-  box-shadow: inset -5px -6px 9px rgba(158, 78, 88, 0.18), 0 2px 6px rgba(65, 38, 87, 0.22);
-  transform: translateX(-50%) scale(0.78);
-  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.starlight-flower-face i {
-  position: absolute;
-  top: 31px;
-  width: 7px;
-  height: 10px;
-  border-radius: 50%;
-  background: #46325f;
-}
-.starlight-flower-face i:first-child { left: 22px; }
-.starlight-flower-face i:nth-child(2) { right: 22px; }
-.starlight-flower-face b {
-  position: absolute;
-  left: 50%;
-  top: 47px;
-  width: 15px;
-  height: 7px;
-  border-bottom: 2px solid #a85b69;
-  border-radius: 0 0 50% 50%;
-  transform: translateX(-50%);
-}
-.starlight-flower-awake {
-  animation: starlight-flower-dance 1.8s ease-in-out infinite;
-  filter: drop-shadow(0 0 20px rgba(255, 227, 128, 0.65)) drop-shadow(0 14px 10px rgba(13, 11, 45, 0.34));
-}
-.starlight-flower-awake .starlight-flower-glow { transform: translateX(-50%) scale(1.35); background: radial-gradient(circle, rgba(255, 237, 161, 0.56), transparent 68%); }
-.starlight-flower-awake .starlight-petal { background: linear-gradient(145deg, #fff0a9, #ef99dc 62%, #9f66bd); }
-.starlight-flower-awake .starlight-petal-a { transform: translateX(-50%) rotate(-56deg) translate(-33px, 2px) scale(0.94); }
-.starlight-flower-awake .starlight-petal-b { transform: translateX(-50%) rotate(56deg) translate(33px, 2px) scaleX(-0.94); }
-.starlight-flower-awake .starlight-petal-c { transform: translateX(-50%) rotate(-22deg) translate(-27px, -29px) scale(0.93); }
-.starlight-flower-awake .starlight-petal-d { transform: translateX(-50%) rotate(22deg) translate(27px, -29px) scaleX(-0.93); }
-.starlight-flower-awake .starlight-flower-face { transform: translateX(-50%) scale(1); }
 
-.starlight-firefly {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 58px;
-  height: 58px;
-  margin: -29px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: #fff4ae;
-  cursor: pointer;
-  filter: drop-shadow(0 0 8px rgba(255, 231, 121, 0.95));
-  animation: starlight-fly 2.9s ease-in-out infinite;
-  transition: filter 0.15s ease, transform 0.15s ease;
+/* 禅境星夜草坪地砖 */
+.starlight-plot-cell {
+  background: linear-gradient(145deg, rgba(34, 49, 74, 0.72), rgba(20, 31, 52, 0.82));
+  border: 1.5px solid rgba(132, 172, 235, 0.22);
+  box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(8, 14, 28, 0.4);
+  transition: all 0.2s ease;
 }
-.starlight-firefly:hover,
-.starlight-firefly:focus-visible { filter: drop-shadow(0 0 15px #fff7b9); outline: none; }
-.starlight-firefly:active { transform: scale(0.78); }
-.starlight-firefly-core {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 27px;
-  height: 27px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 36% 31%, #fffef5, #fff1a6 33%, #f4af63 72%);
-  box-shadow: 0 0 18px 5px rgba(255, 222, 108, 0.56);
-  font-size: 18px;
-  line-height: 1;
-  animation: starlight-core 1.05s ease-in-out infinite alternate;
-}
-.starlight-firefly-wing {
-  position: absolute;
-  top: 21px;
-  z-index: 1;
-  width: 24px;
-  height: 17px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 100% 15% 100% 15%;
-  background: rgba(223, 215, 255, 0.43);
-  transform-origin: bottom right;
-  animation: starlight-wing 0.18s ease-in-out infinite alternate;
-}
-.starlight-firefly-wing-left { right: 26px; transform: rotate(14deg); }
-.starlight-firefly-wing-right { left: 26px; transform: scaleX(-1) rotate(14deg); }
-.starlight-firefly-1 { color: #e8d4ff; filter: drop-shadow(0 0 8px rgba(216, 180, 255, 0.95)); }
-.starlight-firefly-1 .starlight-firefly-core { background: radial-gradient(circle at 36% 31%, #fffefe, #f0d4ff 39%, #b581df 74%); box-shadow: 0 0 18px 5px rgba(221, 171, 255, 0.56); }
-.starlight-firefly-2 { color: #c7f9ff; filter: drop-shadow(0 0 8px rgba(154, 242, 255, 0.95)); }
-.starlight-firefly-2 .starlight-firefly-core { background: radial-gradient(circle at 36% 31%, #fffefe, #c5faff 39%, #6eb5da 74%); box-shadow: 0 0 18px 5px rgba(145, 226, 255, 0.56); }
 
-@keyframes starlight-twinkle {
-  0%, 100% { opacity: 0.22; transform: scale(0.7); }
-  50% { opacity: 1; transform: scale(1.35); }
+.starlight-plot-cell:hover {
+  border-color: rgba(255, 226, 120, 0.55);
+  background: linear-gradient(145deg, rgba(46, 68, 102, 0.82), rgba(28, 44, 73, 0.88));
 }
-@keyframes starlight-drift {
-  from { transform: translateX(-14px); }
-  to { transform: translateX(34px); }
+
+.starlight-plot-cell.active-target {
+  border-color: #ffd84d;
+  box-shadow: 0 0 16px rgba(255, 216, 77, 0.45);
 }
-@keyframes starlight-fly {
-  0%, 100% { transform: translate(0, 0) rotate(-4deg); }
-  35% { transform: translate(9px, -12px) rotate(5deg); }
-  70% { transform: translate(-7px, -4px) rotate(-2deg); }
+
+/* 连击爆发徽章 */
+@keyframes starlight-combo-pulse {
+  0% { transform: scale(0.88); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 12px #ffdd55); }
+  100% { transform: scale(1); }
 }
-@keyframes starlight-core {
-  from { transform: scale(0.82); }
-  to { transform: scale(1.08); }
+
+.starlight-combo-fever {
+  animation: starlight-combo-pulse 0.45s cubic-bezier(0.2, 0.8, 0.3, 1.3);
 }
-@keyframes starlight-wing {
-  from { rotate: -14deg; }
-  to { rotate: 14deg; }
+
+/* 浮动积分与击杀飘字 */
+@keyframes starlight-float-up {
+  0% { transform: translateY(0) scale(0.9); opacity: 0; }
+  25% { transform: translateY(-8px) scale(1.15); opacity: 1; }
+  100% { transform: translateY(-38px) scale(1); opacity: 0; }
 }
-@keyframes starlight-flower-dance {
-  0%, 100% { transform: rotate(-3deg) translateY(0); }
-  50% { transform: rotate(3deg) translateY(-5px); }
+
+.starlight-pop-text {
+  animation: starlight-float-up 0.85s ease-out forwards;
+  pointer-events: none;
+}
+
+/* 流星轰炸特效 */
+@keyframes starlight-meteor-strike {
+  0% { transform: translate(60px, -120px) scale(0.3) rotate(-35deg); opacity: 0; }
+  40% { opacity: 1; }
+  85% { transform: translate(0, 0) scale(1.2) rotate(-35deg); opacity: 1; }
+  100% { transform: translate(0, 0) scale(1.5) rotate(-35deg); opacity: 0; }
+}
+
+.starlight-meteor-blast {
+  animation: starlight-meteor-strike 0.55s ease-in forwards;
+  pointer-events: none;
+}
+
+/* 极光冰封全屏辉光 */
+@keyframes starlight-aurora-glow {
+  0% { opacity: 0; }
+  20% { opacity: 0.85; }
+  80% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+
+.starlight-aurora-overlay {
+  animation: starlight-aurora-glow 3.8s ease-in-out forwards;
+  pointer-events: none;
+}
+
+/* 能量光粒子升腾 */
+@keyframes starlight-float-particle {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+  100% { transform: translateY(-70px) rotate(45deg); opacity: 0; }
+}
+
+.starlight-sparkle-dot {
+  animation: starlight-float-particle 1.8s ease-out infinite;
+}
+
+/* 禅境小树与小苗轻微呼吸晃动 */
+@keyframes starlight-zen-sway {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-3px) rotate(1.5deg); }
+}
+
+.starlight-zen-gentle {
+  animation: starlight-zen-sway 3s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .starlight-star,
-  .starlight-cloud,
-  .starlight-firefly,
-  .starlight-firefly-core,
-  .starlight-firefly-wing,
-  .starlight-flower-awake {
+  .starlight-combo-fever,
+  .starlight-pop-text,
+  .starlight-meteor-blast,
+  .starlight-aurora-overlay,
+  .starlight-sparkle-dot,
+  .starlight-zen-gentle {
     animation: none;
   }
 }
