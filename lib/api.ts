@@ -72,10 +72,14 @@ export interface AdminUserSummary {
 
 export type AdminGame = 'pvz' | 'm3'
 
-/** 节日主题配置 */
+export type SiteTheme = 'classic' | 'qixi' | 'autumn'
+
+/** 节日与全站主题配置 */
 export interface FestivalConfig {
-  /** 七夕限定主题（星空鹊桥装饰 + 彩蛋），管理后台可开关 */
+  /** 七夕限定主题开关（兼容字段） */
   qixi: boolean
+  /** 当前全站主题：classic（经典草坪） | qixi（七夕星河） | autumn（金秋丰收） */
+  theme?: SiteTheme
 }
 
 const TOKEN_KEY = 'pvz-cancan-token'
@@ -232,11 +236,20 @@ export async function adminOverwriteUser(userId: string, progress: Progress): Pr
   })
 }
 
-/** 管理员切换节日主题（七夕）开关。 */
+/** 管理员设置全站主题（classic / qixi / autumn）。 */
+export async function adminSetTheme(theme: SiteTheme): Promise<FestivalConfig> {
+  return request<FestivalConfig>('/api/admin/config/festival', {
+    method: 'POST',
+    body: JSON.stringify({ theme, qixi: theme === 'qixi' }),
+    auth: true,
+  })
+}
+
+/** 管理员切换节日主题（七夕）开关（兼容旧接口）。 */
 export async function adminSetFestivalConfig(qixi: boolean): Promise<FestivalConfig> {
   return request<FestivalConfig>('/api/admin/config/festival', {
     method: 'POST',
-    body: JSON.stringify({ qixi }),
+    body: JSON.stringify({ qixi, theme: qixi ? 'qixi' : 'classic' }),
     auth: true,
   })
 }

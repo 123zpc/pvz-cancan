@@ -22,10 +22,12 @@ import {
   adminListUsers,
   adminOverwriteUser,
   adminSetFestivalConfig,
+  adminSetTheme,
   getFestivalConfig,
   type AdminGame,
   type AdminUserSummary,
   type Progress,
+  type SiteTheme,
 } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -109,24 +111,17 @@ export function AdminPanel({ onBack, onFestivalChanged }: AdminPanelProps) {
       </header>
 
       {/* 摘要卡 */}
-      <section className="mb-5 grid grid-cols-3 gap-2.5">
+      <section className="mb-5 grid grid-cols-2 gap-3">
         <StatCard label="用户总数" value={users.length.toString()} />
         <StatCard
           label="累计在线时长"
           value={fmtTime(users.reduce((s, u) => s + (u.totalPlayTimeSec ?? 0), 0))}
         />
-        <StatCard
-          label="贪吃蛇最高纪录"
-          value={(() => {
-            const top = users.reduce((m, u) => Math.max(m, u.starlightBestScore || 0), 0)
-            return top > 0 ? `${top}分` : '0分'
-          })()}
-        />
       </section>
 
       <DataManagement users={users} onChanged={refresh} />
 
-      <FestivalSection onChanged={onFestivalChanged} />
+      <ThemeManagementSection onChanged={onFestivalChanged} />
 
       {error && (
         <div className="mb-4 rounded-2xl border-2 border-red-200 bg-red-50 p-4 text-sm text-red-600">
@@ -304,9 +299,9 @@ function DataManagement({ users, onChanged }: { users: AdminUserSummary[]; onCha
   )
 }
 
-/* ── 节日主题（七夕限定）开关 ── */
-function FestivalSection({ onChanged }: { onChanged?: () => void }) {
-  const [qixi, setQixi] = useState<boolean | null>(null)
+/* ── 全站主题管理 ── */
+function ThemeManagementSection({ onChanged }: { onChanged?: () => void }) {
+  const [currentTheme, setCurrentTheme] = useState<SiteTheme | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -314,64 +309,124 @@ function FestivalSection({ onChanged }: { onChanged?: () => void }) {
     let cancelled = false
     getFestivalConfig()
       .then((c) => {
-        if (!cancelled) setQixi(c.qixi)
+        if (!cancelled) {
+          if (c.theme) setCurrentTheme(c.theme)
+          else setCurrentTheme(c.qixi ? 'qixi' : 'classic')
+        }
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : '读取节日配置失败')
+        if (!cancelled) setError(e instanceof Error ? e.message : '读取主题配置失败')
       })
     return () => {
       cancelled = true
     }
   }, [])
 
-  const toggle = async () => {
-    if (qixi === null || busy) return
+  const handleSelectTheme = async (theme: SiteTheme) => {
+    if (currentTheme === theme || busy) return
     setBusy(true)
     setError(null)
     try {
-      const c = await adminSetFestivalConfig(!qixi)
-      setQixi(c.qixi)
+      const c = await adminSetTheme(theme)
+      setCurrentTheme(c.theme ?? (c.qixi ? 'qixi' : 'classic'))
       onChanged?.()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '切换失败')
+      setError(e instanceof Error ? e.message : '切换主题失败')
     } finally {
       setBusy(false)
     }
   }
 
+  const THEMES: { id: SiteTheme; name: string; tag: string; desc: string; icon: string; colors: string[] }[] = [
+    {
+      id: 'classic',
+      name: '经典草坪',
+      tag: '原版风味',
+      desc: '经典清爽的植物大战僵尸翠绿草坪风貌，阳光明媚，简洁耐玩。',
+      icon: '🌿',
+      colors: ['#4ade80', '#22c55e', '#15803d'],
+    },
+    {
+      id: 'qixi',
+      name: '七夕星河',
+      tag: '浪漫限定',
+      desc: '粉紫浪漫玫瑰星河，流星划破夜空，喜鹊衔诗送福与专属祈福贺卡。',
+      icon: '🌌',
+      colors: ['#f43f5e', '#ec4899', '#8b5cf6'],
+    },
+    {
+      id: 'autumn',
+      name: '金秋丰收',
+      tag: '秋日限定',
+      desc: '暖金麦浪与枫叶暖橙色调，飘落枫叶银杏飞舞，金秋南瓜彩蛋与温馨祝福。',
+      icon: '🍁',
+      colors: ['#f59e0b', '#ea580c', '#b45309'],
+    },
+  ]
+
   return (
-    <section className="mb-5 rounded-2xl border-2 border-rose-200 bg-rose-50/60 p-4">
+    <section className="mb-5 rounded-3xl border-2 border-border bg-card p-4 shadow-sm">
       <div className="flex items-center gap-2">
-        <Sparkles className="size-4 text-rose-500" aria-hidden="true" />
-        <p className="font-display text-sm font-extrabold text-rose-600">节日主题 · 七夕限定</p>
-        {/* 开关 */}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={qixi === true}
-          aria-label="七夕主题开关"
-          onClick={toggle}
-          disabled={busy || qixi === null}
-          className={cn(
-            'ml-auto relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60',
-            qixi ? 'bg-primary' : 'border-2 border-border bg-secondary',
-          )}
-        >
-          <span
-            className={cn(
-              'absolute top-0.5 size-6 rounded-full bg-white shadow transition-all duration-200',
-              qixi ? 'left-[22px]' : 'left-0.5',
-            )}
-          />
-        </button>
+        <Sparkles className="size-4 text-primary" aria-hidden="true" />
+        <h3 className="font-display text-sm font-extrabold text-foreground">全站主题管理</h3>
+        <span className="ml-auto rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
+          实时全员生效
+        </span>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-        开启后全站换上玫瑰色调，菜单飘起星空鹊桥与流星，点喜鹊有诗词彩蛋，每日首次进入还有七夕祝福卡；关闭则恢复经典草坪风。
-        修改立即生效，其他设备重新进入或刷新后同步。
+      <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+        可一键切换全站视觉风格与节日氛围，其他设备重新进入或刷新后同步展现。
       </p>
-      <p className={cn('mt-2 text-xs font-bold', qixi ? 'text-rose-500' : 'text-muted-foreground')}>
-        {qixi === null ? '读取中…' : qixi ? '已开启 · 星河浪漫进行中' : '已关闭 · 经典草坪风'}
-      </p>
+
+      <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
+        {THEMES.map((item) => {
+          const isActive = currentTheme === item.id
+          return (
+            <div
+              key={item.id}
+              onClick={() => handleSelectTheme(item.id)}
+              className={cn(
+                'cursor-pointer rounded-2xl border-2 p-3 transition-all relative select-none',
+                isActive
+                  ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary'
+                  : 'border-border bg-background hover:border-primary/50',
+                busy && 'opacity-60 pointer-events-none',
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-display text-sm font-bold">
+                  <span>{item.icon}</span>
+                  <span>{item.name}</span>
+                </div>
+                {isActive ? (
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-primary-foreground">
+                    生效中
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    {item.tag}
+                  </span>
+                )}
+              </div>
+
+              {/* 色条 */}
+              <div className="my-2 flex gap-1.5">
+                {item.colors.map((c, i) => (
+                  <span
+                    key={i}
+                    className="h-2 flex-1 rounded-full shadow-xs"
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+
+              <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2">
+                {item.desc}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+
       {error && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
     </section>
   )
@@ -384,6 +439,29 @@ export function getSnakeRank(score: number): string {
   if (score >= 300) return '破土嫩芽 🌱'
   if (score > 0) return '初探草坪 🍀'
   return '未入驻 🍃'
+}
+
+function SnakeProgressMini({ score }: { score: number }) {
+  const maxTarget = 1500
+  const pct = Math.min(100, Math.max(0, Math.round((score / maxTarget) * 100)))
+  const clearedMissions = [100, 260, 500, 850, 1500].filter((t) => score >= t).length
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-xs font-bold text-muted-foreground">
+        <span>贪吃蛇</span>
+        <span className="tabular-nums font-bold text-foreground">{score > 0 ? `${score} 分` : '未游玩'}</span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-300"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <p className="mt-1 text-[11px] text-muted-foreground truncate">
+        {score > 0 ? `挑战 ${clearedMissions}/5 · ${getSnakeRank(score)}` : '尚未开局'}
+      </p>
+    </div>
+  )
 }
 
 function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void }) {
@@ -410,17 +488,11 @@ function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void
             最近 {fmtDate(user.lastPlayedAt)}
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
-            <Sparkles className="size-3" aria-hidden="true" />
-            贪吃蛇 {snakeScore > 0 ? `${snakeScore}分` : '未游玩'}
-          </span>
-          <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        </div>
+        <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
       </div>
 
-      {/* 三大游戏模块进度 */}
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      {/* 三大游戏外部进度 */}
+      <div className="mt-3 grid grid-cols-3 gap-3">
         <ProgressMini
           label="主游戏"
           unlocked={user.unlocked}
@@ -433,23 +505,7 @@ function UserCard({ user, onEdit }: { user: AdminUserSummary; onEdit: () => void
           cleared={user.m3ClearedCount}
           total={m3Total}
         />
-        <div className="flex flex-col justify-between rounded-xl bg-secondary/50 p-2 text-xs">
-          <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground">
-            <span>萌藤贪吃蛇</span>
-            <span className={snakeScore > 0 ? 'font-extrabold text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}>
-              {snakeScore > 0 ? '已入驻' : '未游玩'}
-            </span>
-          </div>
-          <div className="my-1">
-            <span className="font-display text-sm font-extrabold tabular-nums text-foreground">
-              {snakeScore}
-            </span>
-            <span className="ml-0.5 text-[10px] text-muted-foreground">分</span>
-          </div>
-          <p className="truncate text-[10px] font-medium text-muted-foreground">
-            {getSnakeRank(snakeScore)}
-          </p>
-        </div>
+        <SnakeProgressMini score={snakeScore} />
       </div>
     </button>
   )

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 public class FestivalConfigService {
 
   public static final String FESTIVAL_KEY = "config:festival";
+  public static final String THEME_KEY = "config:theme";
 
   private final RedisTemplate<String, Object> redisTemplate;
 
@@ -20,15 +21,36 @@ public class FestivalConfigService {
     this.redisTemplate = redisTemplate;
   }
 
-  /** 七夕主题是否开启。无记录时默认开启（节日献礼）。 */
+  /** 获取当前生效的主题：classic / qixi / autumn */
+  public String getCurrentTheme() {
+    Object val = redisTemplate.opsForValue().get(THEME_KEY);
+    if (val instanceof String s && !s.isBlank()) {
+      return s;
+    }
+    // 兼容旧版 config:festival
+    Object oldQixi = redisTemplate.opsForValue().get(FESTIVAL_KEY);
+    if (Boolean.FALSE.equals(oldQixi)) {
+      return "classic";
+    }
+    return "qixi";
+  }
+
+  /** 七夕主题是否开启（兼容旧客户端） */
   public boolean isQixiEnabled() {
-    Object val = redisTemplate.opsForValue().get(FESTIVAL_KEY);
-    if (val instanceof Boolean b) return b;
-    return true;
+    return "qixi".equalsIgnoreCase(getCurrentTheme());
+  }
+
+  /** 设置全站主题 */
+  public synchronized void setTheme(String theme) {
+    String normalized = "qixi".equalsIgnoreCase(theme) ? "qixi"
+        : "autumn".equalsIgnoreCase(theme) ? "autumn"
+        : "classic";
+    redisTemplate.opsForValue().set(THEME_KEY, normalized);
+    redisTemplate.opsForValue().set(FESTIVAL_KEY, "qixi".equals(normalized));
+    log.info("全站主题已更新为: {}", normalized);
   }
 
   public synchronized void setQixiEnabled(boolean enabled) {
-    redisTemplate.opsForValue().set(FESTIVAL_KEY, enabled);
-    log.info("七夕主题已{}", enabled ? "开启" : "关闭");
+    setTheme(enabled ? "qixi" : "classic");
   }
 }

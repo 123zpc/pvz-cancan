@@ -12,6 +12,7 @@ import { Match3 } from '@/components/game/match3'
 import { Match3Select } from '@/components/game/match3-select'
 import { MusicToggle } from '@/components/game/music-toggle'
 import { QixiDecor, QixiGreeting } from '@/components/game/qixi-theme'
+import { AutumnDecor, AutumnGreeting } from '@/components/game/autumn-theme'
 import { StarlightGarden } from '@/components/game/starlight-garden'
 import { VasebreakerLevel } from '@/components/game/vasebreaker-level'
 import { audio } from '@/lib/game/audio'
@@ -26,6 +27,7 @@ import {
   login as apiLogin,
   saveProgress,
   type Progress,
+  type SiteTheme,
 } from '@/lib/api'
 
 type View = 'menu' | 'games' | 'levels' | 'story' | 'about' | 'battle' | 'match3-select' | 'match3' | 'starlight-garden' | 'admin'
@@ -33,16 +35,20 @@ type View = 'menu' | 'games' | 'levels' | 'story' | 'about' | 'battle' | 'match3
 /** 本地兜底进度：后端不可用时使用，保证离线可玩。包含主游戏 + 消消乐 */
 const STORAGE_KEY = 'pvz-cancan-progress-fallback'
 
-/** 七夕主题本地缓存：后端不可达时沿用上次状态（默认开启） */
+/** 全站主题本地缓存：classic / qixi / autumn */
+const THEME_CACHE_KEY = 'pvz-theme-cache'
 const QIXI_CACHE_KEY = 'pvz-qixi-cache'
 
-function loadQixiCache(): boolean {
-  if (typeof window === 'undefined') return false
+function loadThemeCache(): SiteTheme {
+  if (typeof window === 'undefined') return 'classic'
   try {
-    const v = localStorage.getItem(QIXI_CACHE_KEY)
-    return v === null ? true : v === '1'
+    const v = localStorage.getItem(THEME_CACHE_KEY)
+    if (v === 'qixi' || v === 'autumn' || v === 'classic') return v
+    const oldQ = localStorage.getItem(QIXI_CACHE_KEY)
+    if (oldQ === '1') return 'qixi'
+    return 'classic'
   } catch {
-    return true
+    return 'classic'
   }
 }
 
@@ -102,21 +108,23 @@ export default function Page() {
   const [starlightBestScore, setStarlightBestScore] = useState(0)
   /** 客户端挂载标记，防止 SSR 与客户端首屏 Hydration 不匹配 */
   const [mounted, setMounted] = useState(false)
-  /** 七夕限定主题（管理后台可开关） */
-  const [qixiOn, setQixiOn] = useState<boolean>(false)
+  /** 全站主题配置：classic / qixi / autumn */
+  const [siteTheme, setSiteTheme] = useState<SiteTheme>('classic')
+  const qixiOn = siteTheme === 'qixi'
 
   const isAdmin = userId === ADMIN_USER_ID
 
   useEffect(() => {
     setMounted(true)
-    setQixiOn(loadQixiCache())
+    setSiteTheme(loadThemeCache())
   }, [])
 
-  /** 同步七夕主题：写状态 + 本地缓存 + html 属性 */
-  const applyQixi = useCallback((on: boolean) => {
-    setQixiOn(on)
+  /** 同步全站主题：写状态 + 本地缓存 + html 属性 */
+  const applyTheme = useCallback((theme: SiteTheme) => {
+    setSiteTheme(theme)
     try {
-      localStorage.setItem(QIXI_CACHE_KEY, on ? '1' : '0')
+      localStorage.setItem(THEME_CACHE_KEY, theme)
+      localStorage.setItem(QIXI_CACHE_KEY, theme === 'qixi' ? '1' : '0')
     } catch {
       /* 忽略 */
     }
@@ -125,18 +133,28 @@ export default function Page() {
   const fetchFestival = useCallback(async () => {
     try {
       const c = await getFestivalConfig()
-      applyQixi(c.qixi)
+      if (c.theme) {
+        applyTheme(c.theme)
+      } else {
+        applyTheme(c.qixi ? 'qixi' : 'classic')
+      }
     } catch {
       // 后端不可达：沿用本地缓存
     }
-  }, [applyQixi])
+  }, [applyTheme])
 
-  // 主题属性挂到 <html>，驱动 CSS 变量换装；同步切换 theme-color meta（iOS Safari 状态栏/工具栏背景跟随主题，否则七夕时仍是写死的浅绿、与页面冲突后变灰）
+  // 主题属性挂到 <html>，驱动 CSS 变量换装；同步切换 theme-color meta
   useEffect(() => {
-    document.documentElement.dataset.qixi = qixiOn ? 'on' : 'off'
+    document.documentElement.dataset.theme = siteTheme
+    document.documentElement.dataset.qixi = siteTheme === 'qixi' ? 'on' : 'off'
     const meta = document.querySelector('meta[name="theme-color"]')
-    if (meta) meta.setAttribute('content', qixiOn ? '#fbe9ee' : '#8ed17a')
-  }, [qixiOn])
+    if (meta) {
+      meta.setAttribute(
+        'content',
+        siteTheme === 'qixi' ? '#fbe9ee' : siteTheme === 'autumn' ? '#fef3c7' : '#8ed17a'
+      )
+    }
+  }, [siteTheme])
 
   // 启动时：检查 token 是否仍有效，并从后端拉取进度
   useEffect(() => {
@@ -266,14 +284,19 @@ export default function Page() {
     setMatch3Level(null)
   }, [])
 
-  // 七夕装饰：仅非游戏界面且客户端挂载后展示（避免 SSR Hydration Mismatch）
-  const showQixiDecor = mounted && qixiOn && view !== 'battle' && view !== 'match3' && view !== 'starlight-garden'
+  // 全站主题装饰层：非游戏战斗且客户端挂载后展示
+  const ThemeDecor = () => {
+    if (!mounted || view === 'battle' || view === 'match3' || view === 'starlight-garden') return null
+    if (siteTheme === 'qixi') return <QixiDecor />
+    if (siteTheme === 'autumn') return <AutumnDecor />
+    return null
+  }
 
   // 密码门
   if (!authed) {
     return (
       <>
-      {showQixiDecor && <QixiDecor />}
+      <ThemeDecor />
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-gradient-to-b from-lawn/30 via-background to-lawn/20 p-6">
         <div className="w-full max-w-xs text-center">
           <div className="mb-6 text-5xl">🌻</div>
@@ -308,7 +331,7 @@ export default function Page() {
   if (view === 'games') {
     return (
       <>
-        {showQixiDecor && <QixiDecor />}
+        <ThemeDecor />
         <GamesHub
           onBack={() => setView('menu')}
           onSelectPvZ={() => setView('levels')}
@@ -369,7 +392,7 @@ export default function Page() {
   if (view === 'match3-select') {
     return (
       <>
-        {showQixiDecor && <QixiDecor />}
+        <ThemeDecor />
         <Match3Select
           unlocked={m3Unlocked}
           cleared={m3Cleared}
@@ -386,7 +409,7 @@ export default function Page() {
   if (view === 'admin' && isAdmin) {
     return (
       <>
-        {showQixiDecor && <QixiDecor />}
+        <ThemeDecor />
         <AdminPanel onBack={() => setView('menu')} onFestivalChanged={fetchFestival} />
       </>
     )
@@ -395,7 +418,7 @@ export default function Page() {
   if (view === 'levels') {
     return (
       <>
-        {showQixiDecor && <QixiDecor />}
+        <ThemeDecor />
         <LevelSelect
           unlocked={unlocked}
           cleared={cleared}
@@ -412,7 +435,7 @@ export default function Page() {
   if (view === 'story') {
     return (
       <>
-        {showQixiDecor && <QixiDecor />}
+        <ThemeDecor />
         <StoryView onBack={() => setView('menu')} onPlay={() => setView('levels')} />
       </>
     )
@@ -421,7 +444,7 @@ export default function Page() {
   if (view === 'about') {
     return (
       <>
-        {showQixiDecor && <QixiDecor />}
+        <ThemeDecor />
         <AboutView onBack={() => setView('menu')} />
       </>
     )
@@ -429,8 +452,9 @@ export default function Page() {
 
   return (
     <>
-      {showQixiDecor && <QixiDecor />}
-      {qixiOn && <QixiGreeting userName={userName} />}
+      <ThemeDecor />
+      {siteTheme === 'qixi' && <QixiGreeting userName={userName} />}
+      {siteTheme === 'autumn' && <AutumnGreeting userName={userName} />}
       <MainMenu
         onPlay={() => setView('games')}
         onStory={() => setView('story')}

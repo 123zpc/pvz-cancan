@@ -8,4 +8,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class SetFestivalRequest {
   private Boolean qixi;
+  private String theme;
 }

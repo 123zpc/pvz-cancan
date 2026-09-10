@@ -90,6 +90,49 @@ html[data-qixi='on'] body {
   transition: background-color 0.6s ease;
 }
 
+/* ── 金秋丰收限定主题：暖橙金枫麦浪色调 ── */
+html[data-theme='autumn'] {
+  --background: oklch(0.965 0.032 75);
+  --foreground: oklch(0.32 0.07 55);
+  --card: oklch(0.995 0.012 80);
+  --card-foreground: oklch(0.32 0.07 55);
+  --popover: oklch(0.995 0.012 80);
+  --popover-foreground: oklch(0.32 0.07 55);
+  --primary: oklch(0.65 0.18 50);
+  --primary-foreground: oklch(0.99 0.01 75);
+  --secondary: oklch(0.93 0.04 70);
+  --secondary-foreground: oklch(0.34 0.08 55);
+  --muted: oklch(0.93 0.03 70);
+  --muted-foreground: oklch(0.50 0.05 55);
+  --border: oklch(0.88 0.045 70);
+  --input: oklch(0.88 0.045 70);
+  --ring: oklch(0.65 0.18 50);
+}
+html[data-theme='autumn'] body {
+  transition: background-color 0.6s ease;
+}
+
+@keyframes autumn-leaf-fall {
+  0% {
+    transform: translate3d(0, -10%, 0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(var(--leaf-x-drift, 60px), 105vh, 0) rotate(var(--leaf-rot, 360deg));
+    opacity: 0;
+  }
+}
+
+.autumn-leaf {
+  animation: autumn-leaf-fall var(--leaf-dur, 10s) linear infinite;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -31,7 +31,11 @@ public class FestivalController {
   public ResponseEntity<?> get(@RequestHeader(value = "Authorization", required = false) String auth) {
     String userId = auth(auth);
     if (userId == null) return unauthorized();
-    return ResponseEntity.ok(Map.of("qixi", festivalConfigService.isQixiEnabled()));
+    String theme = festivalConfigService.getCurrentTheme();
+    return ResponseEntity.ok(Map.of(
+        "qixi", "qixi".equals(theme),
+        "theme", theme
+    ));
   }
 
   @PostMapping("/admin/config/festival")
@@ -40,8 +44,19 @@ public class FestivalController {
     String adminId = auth(auth);
     if (adminId == null) return unauthorized();
     if (!userService.isAdmin(adminId)) return forbidden();
-    festivalConfigService.setQixiEnabled(Boolean.TRUE.equals(request.getQixi()));
-    return ResponseEntity.ok(Map.of("success", true, "qixi", festivalConfigService.isQixiEnabled()));
+
+    if (request.getTheme() != null && !request.getTheme().isBlank()) {
+      festivalConfigService.setTheme(request.getTheme());
+    } else if (request.getQixi() != null) {
+      festivalConfigService.setQixiEnabled(request.getQixi());
+    }
+
+    String theme = festivalConfigService.getCurrentTheme();
+    return ResponseEntity.ok(Map.of(
+        "success", true,
+        "qixi", "qixi".equals(theme),
+        "theme", theme
+    ));
   }
 
   /** 从 Authorization 头解析 token 并校验，返回 userId 或 null。 */

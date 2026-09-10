@@ -778,10 +778,10 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
      ─────────────────────────────────────────────────────────── */
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-[#071109] text-white select-none touch-none overflow-hidden overscroll-none">
-      {/* 顶部紧凑状态栏 */}
-      <header className="h-11 shrink-0 border-b border-white/10 bg-black/45 px-3 flex items-center justify-between backdrop-blur-md z-30">
+      {/* 顶部紧凑状态栏（节省高度） */}
+      <header className="h-9 shrink-0 border-b border-white/10 bg-black/50 px-3 flex items-center justify-between backdrop-blur-md z-30">
         {/* 左侧：返回 + 换皮肤 + 音效 */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={onBack}
             className="flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-slate-200 hover:bg-white/20 active:scale-95 transition"
@@ -802,11 +802,11 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
         </div>
 
         {/* 中间：标题与得分 */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <h1 className="hidden md:inline font-display text-sm font-extrabold text-amber-300 tracking-wide">
             星愿花园 · 萌藤贪吃蛇
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="rounded-lg bg-black/60 px-2.5 py-0.5 text-xs font-black text-amber-300 border border-amber-400/30 tabular-nums">
               得分 {score}
             </span>
@@ -823,12 +823,12 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
         </div>
 
         {/* 右侧：生命爱心 + 暂停 + 全屏 */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <div className="flex items-center gap-0.5 mr-1">
             {Array.from({ length: 3 }).map((_, i) => (
               <Heart
                 key={i}
-                className={`size-4.5 transition-transform ${
+                className={`size-4 transition-transform ${
                   i < lives ? 'fill-rose-500 text-rose-400 scale-100' : 'fill-slate-800 text-slate-700 scale-90'
                 }`}
               />
@@ -836,14 +836,14 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
           </div>
           <button
             onClick={() => setIsPaused(!isPaused)}
-            className="rounded-full bg-white/10 p-1.5 text-slate-200 hover:bg-white/20 active:scale-95 transition"
+            className="rounded-full bg-white/10 p-1 text-slate-200 hover:bg-white/20 active:scale-95 transition"
             title={isPaused ? '继续' : '暂停'}
           >
             {isPaused ? <Play className="size-4" /> : <Pause className="size-4" />}
           </button>
           <button
             onClick={toggleFullscreen}
-            className="rounded-full bg-white/10 p-1.5 text-slate-200 hover:bg-white/20 active:scale-95 transition"
+            className="rounded-full bg-white/10 p-1 text-slate-200 hover:bg-white/20 active:scale-95 transition"
             title="全屏"
           >
             {isFullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
@@ -852,20 +852,20 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
       </header>
 
       {/* ───────────────────────────────────────────────────────────
-          横屏主舞台：左手摇杆 + 中间草坪 + 右手冲刺
+          横屏主舞台：左手摇杆 + 中间超大草坪 + 右手冲刺
           ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-between px-2 sm:px-6 py-2 overflow-hidden gap-2 sm:gap-4">
+      <div className="flex-1 flex items-center justify-between px-2 sm:px-4 py-0.5 overflow-hidden gap-1 sm:gap-4">
         {/* 左侧区域：屏幕虚拟摇杆 */}
-        <div className="w-32 sm:w-44 shrink-0 flex flex-col items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center max-w-[200px]">
           <VirtualJoystick onDirection={handleJoystickDirection} currentDir={dir} />
-          <span className="mt-2 text-[10px] text-muted-foreground/60 hidden sm:inline">
+          <span className="mt-1 text-[10px] text-muted-foreground/60 hidden sm:inline">
             或键盘 WASD / 方向键
           </span>
         </div>
 
-        {/* 中间核心：自适应高度的 20 × 20 像素草坪棋盘 */}
-        <div className="flex-1 flex items-center justify-center h-full max-h-full py-0.5">
-          <div className="relative aspect-square h-full max-h-[calc(100vh-3.5rem)] max-w-full rounded-2xl sm:rounded-3xl border-4 border-[#2d3a22] bg-[#18291e] shadow-2xl overflow-hidden">
+        {/* 中间核心：自适应超大 20 × 20 像素草坪棋盘（iPhone 17 横屏极限撑满） */}
+        <div className="flex shrink-0 items-center justify-center h-full py-0.5">
+          <div className="relative aspect-square h-[calc(100dvh-2.6rem)] max-h-[min(88vw,88vh,720px)] rounded-2xl sm:rounded-3xl border-4 border-[#2d3a22] bg-[#18291e] shadow-2xl overflow-hidden">
             {/* 网格草坪地砖 */}
             <div
               className="grid size-full"
@@ -1084,7 +1084,7 @@ export function StarlightGarden({ onBack, bestScore, onBestScore }: StarlightGar
         </div>
 
         {/* 右侧区域：极速冲刺大按钮 + 状态与目标 */}
-        <div className="w-32 sm:w-44 shrink-0 flex flex-col items-center justify-center gap-2.5">
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 max-w-[200px]">
           {/* 极速冲刺大按钮 */}
           <div className="flex flex-col items-center">
             <button
