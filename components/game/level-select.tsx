@@ -9,15 +9,17 @@ import { PlantSprite, ZombieSprite } from './sprites'
 import { LevelSelectHeader } from './level-select-header'
 import { audio } from '@/lib/game/audio'
 import { MusicToggle } from './music-toggle'
+import type { SiteTheme } from '@/lib/api'
 
 interface LevelSelectProps {
   unlocked: number
   cleared: number[]
   onStart: (level: Level) => void
   onBack: () => void
+  theme?: SiteTheme
 }
 
-export function LevelSelect({ unlocked, cleared, onStart, onBack }: LevelSelectProps) {
+export function LevelSelect({ unlocked, cleared, onStart, onBack, theme }: LevelSelectProps) {
   useEffect(() => {
     audio.startMusic('menu')
     return () => { audio.stopMusic() }
@@ -39,6 +41,7 @@ export function LevelSelect({ unlocked, cleared, onStart, onBack }: LevelSelectP
       <LevelSelectHeader
         unlocked={unlocked}
         total={LEVELS.length}
+        theme={theme}
         onStart={() => onStart(LEVELS[Math.min(unlocked, LEVELS.length) - 1] ?? LEVELS[0])}
         decoration={
           <>

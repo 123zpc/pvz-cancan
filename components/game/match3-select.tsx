@@ -8,15 +8,17 @@ import { PlantSprite, ZombieSprite } from './sprites'
 import { LevelSelectHeader } from './level-select-header'
 import { audio } from '@/lib/game/audio'
 import { MusicToggle } from './music-toggle'
+import type { SiteTheme } from '@/lib/api'
 
 interface Match3SelectProps {
   unlocked: number
   cleared: number[]
   onStart: (level: Match3Level) => void
   onBack: () => void
+  theme?: SiteTheme
 }
 
-export function Match3Select({ unlocked, cleared, onStart, onBack }: Match3SelectProps) {
+export function Match3Select({ unlocked, cleared, onStart, onBack, theme }: Match3SelectProps) {
   useEffect(() => {
     audio.startMusic('menu')
     return () => { audio.stopMusic() }
@@ -38,6 +40,7 @@ export function Match3Select({ unlocked, cleared, onStart, onBack }: Match3Selec
       <LevelSelectHeader
         unlocked={unlocked}
         total={MATCH3_LEVELS.length}
+        theme={theme}
         onStart={() => onStart(MATCH3_LEVELS[Math.min(unlocked, MATCH3_LEVELS.length) - 1] ?? MATCH3_LEVELS[0])}
         decoration={
           <>

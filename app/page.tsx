@@ -12,7 +12,7 @@ import { Match3 } from '@/components/game/match3'
 import { Match3Select } from '@/components/game/match3-select'
 import { MusicToggle } from '@/components/game/music-toggle'
 import { QixiDecor, QixiGreeting } from '@/components/game/qixi-theme'
-import { AutumnDecor, AutumnGreeting } from '@/components/game/autumn-theme'
+import { AutumnDecor } from '@/components/game/autumn-theme'
 import { StarlightGarden } from '@/components/game/starlight-garden'
 import { VasebreakerLevel } from '@/components/game/vasebreaker-level'
 import { audio } from '@/lib/game/audio'
@@ -344,6 +344,7 @@ export default function Page() {
           m3Cleared={m3Cleared}
           m3Total={MATCH3_LEVELS.length}
           starlightBestScore={starlightBestScore}
+          theme={siteTheme}
         />
       </>
     )
@@ -397,6 +398,7 @@ export default function Page() {
         <Match3Select
           unlocked={m3Unlocked}
           cleared={m3Cleared}
+          theme={siteTheme}
           onStart={(l) => {
             setMatch3Level(l)
             setView('match3')
@@ -428,6 +430,7 @@ export default function Page() {
         <LevelSelect
           unlocked={unlocked}
           cleared={cleared}
+          theme={siteTheme}
           onStart={(l) => {
             setLevel(l)
             setView('battle')
@@ -460,7 +463,6 @@ export default function Page() {
     <>
       <ThemeDecor />
       {siteTheme === 'qixi' && <QixiGreeting userName={userName} />}
-      {siteTheme === 'autumn' && <AutumnGreeting userName={userName} />}
       <MainMenu
         onPlay={() => setView('games')}
         onStory={() => setView('story')}
@@ -469,6 +471,7 @@ export default function Page() {
         userName={userName}
         onLogout={handleLogout}
         qixi={qixiOn}
+        theme={siteTheme}
       />
     </>
   )

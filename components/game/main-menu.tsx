@@ -6,6 +6,8 @@ import { PlantSprite, SunSprite, ZombieSprite } from './sprites'
 import { audio } from '@/lib/game/audio'
 import { MusicToggle } from './music-toggle'
 import { QixiBadge, HEART_PATH } from './qixi-theme'
+import { AutumnBadge } from './autumn-theme'
+import type { SiteTheme } from '@/lib/api'
 
 interface MainMenuProps {
   onPlay: () => void
@@ -14,11 +16,13 @@ interface MainMenuProps {
   onAdmin?: () => void
   userName?: string
   onLogout?: () => void
-  /** 七夕限定主题开启时展示徽章 */
+  /** 七夕限定主题开启时展示徽章 (兼容) */
   qixi?: boolean
+  /** 全站主题 */
+  theme?: SiteTheme
 }
 
-export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout, qixi }: MainMenuProps) {
+export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout, qixi, theme }: MainMenuProps) {
   useEffect(() => {
     audio.startMusic('menu')
     return () => {
@@ -26,10 +30,13 @@ export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout
     }
   }, [])
 
+  const isAutumn = theme === 'autumn'
+  const isQixi = theme === 'qixi' || (!theme && qixi)
+
   return (
     <main className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center justify-center overflow-hidden px-4 py-8">
-      {/* 飘心背景装饰（七夕主题开启时让位给七夕的花瓣星屑，避免双层爱心重叠） */}
-      {!qixi && (
+      {/* 飘心背景装饰（七夕与金秋各自有独立的全站落瓣/落叶装饰，避免重叠） */}
+      {!isQixi && !isAutumn && (
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         {FLOATING_HEARTS.map((h, i) => (
           <svg
@@ -54,11 +61,21 @@ export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout
       {/* 主标题区 */}
       <div className="relative z-10 flex flex-col items-center text-center">
         <div className="mb-2 flex items-center gap-1.5 rounded-full bg-card/85 px-4 py-1.5 shadow-md backdrop-blur">
-          <SunSprite className="size-5" />
-          <span className="font-display text-sm font-bold text-accent-foreground">献给灿灿</span>
-          <svg className="size-4 text-rose-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d={HEART_PATH} />
-          </svg>
+          {isAutumn ? (
+            <>
+              <span className="text-base">🍁</span>
+              <span className="font-display text-sm font-bold text-amber-600">金秋丰收献给灿灿</span>
+              <span className="text-base">🌾</span>
+            </>
+          ) : (
+            <>
+              <SunSprite className="size-5" />
+              <span className="font-display text-sm font-bold text-accent-foreground">献给灿灿</span>
+              <svg className="size-4 text-rose-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d={HEART_PATH} />
+              </svg>
+            </>
+          )}
         </div>
 
         <h1 className="font-display text-5xl font-extrabold tracking-tight text-balance text-primary drop-shadow-md sm:text-7xl">
@@ -68,10 +85,15 @@ export function MainMenu({ onPlay, onStory, onAbout, onAdmin, userName, onLogout
           <p className="font-display text-lg font-bold text-rose-400 sm:text-2xl">
             灿灿专属版
           </p>
-          {qixi && <QixiBadge />}
+          {isQixi && <QixiBadge />}
+          {isAutumn && <AutumnBadge />}
         </div>
         <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
-          种下向日葵，收集阳光，守护属于我们的草坪。
+          {isAutumn
+            ? '秋风送爽，麦浪翻金，守护属于我们的丰收草坪。'
+            : isQixi
+            ? '星河灿烂，心意相通，守护属于我们的浪漫草坪。'
+            : '种下向日葵，收集阳光，守护属于我们的草坪。'}
         </p>
 
         {/* 装饰角色 */}

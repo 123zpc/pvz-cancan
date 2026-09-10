@@ -179,3 +179,14 @@ export function AutumnGreeting({ userName }: { userName?: string }) {
     </div>
   )
 }
+
+/** 金秋限定徽章 */
+export function AutumnBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/60 bg-gradient-to-r from-amber-500/90 to-orange-500/90 px-3 py-0.5 text-xs font-bold text-white shadow-sm backdrop-blur">
+      <Sparkles className="size-3 text-amber-200" />
+      <span>金秋限定</span>
+    </span>
+  )
+}
+
