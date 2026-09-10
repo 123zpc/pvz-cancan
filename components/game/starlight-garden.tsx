@@ -302,6 +302,7 @@ function VirtualJoystick({ onDirection, currentDir, mapTheme }: VirtualJoystickP
   }, [onDirection])
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
     if (pointerIdRef.current !== null) return
     pointerIdRef.current = e.pointerId
     try {
@@ -313,11 +314,13 @@ function VirtualJoystick({ onDirection, currentDir, mapTheme }: VirtualJoystickP
   }
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
     if (pointerIdRef.current !== e.pointerId) return
     updateKnob(e.clientX, e.clientY)
   }
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
     if (pointerIdRef.current !== e.pointerId) return
     pointerIdRef.current = null
     activeDirRef.current = null
@@ -340,61 +343,89 @@ function VirtualJoystick({ onDirection, currentDir, mapTheme }: VirtualJoystickP
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         className={cn(
-          'relative size-22 sm:size-26 rounded-full border-2 backdrop-blur-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center transition-shadow',
+          'relative size-24 sm:size-28 rounded-full border-2 backdrop-blur-md cursor-grab active:cursor-grabbing touch-none flex items-center justify-center transition-shadow',
           mapTheme.joystickBaseBorder,
           mapTheme.joystickBaseBg,
           mapTheme.joystickGlow,
         )}
       >
-        {/* 四向刻度与高亮箭头 */}
-        <span
+        {/* 四向刻度与高亮箭头（支持直接点按，亦支持拖动摇杆） */}
+        <button
+          type="button"
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            setActiveDir('UP')
+            onDirection('UP')
+          }}
           className={cn(
-            'absolute top-1 flex items-center justify-center transition-transform',
+            'absolute top-0.5 inset-x-0 mx-auto flex h-7 w-9 items-center justify-center transition-transform active:scale-125 touch-none z-10',
             activeDir === 'UP' || currentDir === 'UP'
               ? cn(mapTheme.joystickArrowActive, 'scale-125')
-              : 'text-white/20',
+              : 'text-white/30 hover:text-white/70',
           )}
+          aria-label="向上"
         >
-          <ArrowUp className="size-3.5" />
-        </span>
-        <span
+          <ArrowUp className="size-4" />
+        </button>
+        <button
+          type="button"
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            setActiveDir('DOWN')
+            onDirection('DOWN')
+          }}
           className={cn(
-            'absolute bottom-1 flex items-center justify-center transition-transform',
+            'absolute bottom-0.5 inset-x-0 mx-auto flex h-7 w-9 items-center justify-center transition-transform active:scale-125 touch-none z-10',
             activeDir === 'DOWN' || currentDir === 'DOWN'
               ? cn(mapTheme.joystickArrowActive, 'scale-125')
-              : 'text-white/20',
+              : 'text-white/30 hover:text-white/70',
           )}
+          aria-label="向下"
         >
-          <ArrowDown className="size-3.5" />
-        </span>
-        <span
+          <ArrowDown className="size-4" />
+        </button>
+        <button
+          type="button"
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            setActiveDir('LEFT')
+            onDirection('LEFT')
+          }}
           className={cn(
-            'absolute left-1 flex items-center justify-center transition-transform',
+            'absolute left-0.5 inset-y-0 my-auto flex h-9 w-7 items-center justify-center transition-transform active:scale-125 touch-none z-10',
             activeDir === 'LEFT' || currentDir === 'LEFT'
               ? cn(mapTheme.joystickArrowActive, 'scale-125')
-              : 'text-white/20',
+              : 'text-white/30 hover:text-white/70',
           )}
+          aria-label="向左"
         >
-          <ArrowLeft className="size-3.5" />
-        </span>
-        <span
+          <ArrowLeft className="size-4" />
+        </button>
+        <button
+          type="button"
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            setActiveDir('RIGHT')
+            onDirection('RIGHT')
+          }}
           className={cn(
-            'absolute right-1 flex items-center justify-center transition-transform',
+            'absolute right-0.5 inset-y-0 my-auto flex h-9 w-7 items-center justify-center transition-transform active:scale-125 touch-none z-10',
             activeDir === 'RIGHT' || currentDir === 'RIGHT'
               ? cn(mapTheme.joystickArrowActive, 'scale-125')
-              : 'text-white/20',
+              : 'text-white/30 hover:text-white/70',
           )}
+          aria-label="向右"
         >
-          <ArrowRight className="size-3.5" />
-        </span>
+          <ArrowRight className="size-4" />
+        </button>
 
         {/* 内部同心装饰环 */}
-        <div className="size-11 rounded-full border border-white/10 pointer-events-none" />
+        <div className="size-12 rounded-full border border-white/10 pointer-events-none" />
 
         {/* 摇杆中心滑块（Knob） */}
         <div
           className={cn(
-            'absolute size-9 rounded-full border-2 shadow-[0_4px_12px_rgba(0,0,0,0.6)] pointer-events-none flex items-center justify-center',
+            'absolute size-10 rounded-full border-2 shadow-[0_4px_12px_rgba(0,0,0,0.6)] pointer-events-none flex items-center justify-center',
             mapTheme.joystickKnobBorder,
             mapTheme.joystickKnobBg,
           )}
@@ -404,7 +435,7 @@ function VirtualJoystick({ onDirection, currentDir, mapTheme }: VirtualJoystickP
           }}
         >
           {/* 滑块凹陷与手感凸点 */}
-          <div className="size-3 rounded-full bg-white/40 border border-white/60 shadow-inner" />
+          <div className="size-3.5 rounded-full bg-white/40 border border-white/60 shadow-inner" />
         </div>
       </div>
     </div>
@@ -490,38 +521,68 @@ export function StarlightGarden({
     return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
 
-  /* 游戏核心状态：初始位置位于 28 × 16 棋盘中心靠左 */
-  const [snake, setSnake] = useState<Point[]>([
+  /* 游戏核心状态与可变 Ref 保证高频时钟同步与零竞态 */
+  const snakeRef = useRef<Point[]>([
     { x: 14, y: 8 },
     { x: 13, y: 8 },
     { x: 12, y: 8 },
     { x: 11, y: 8 },
   ])
-  const [dir, setDir] = useState<Direction>('RIGHT')
-  const nextDirRef = useRef<Direction>('RIGHT')
+  const [snake, setSnake] = useState<Point[]>(snakeRef.current)
 
+  const dirRef = useRef<Direction>('RIGHT')
+  const dirQueueRef = useRef<Direction[]>([])
+  const [dir, setDir] = useState<Direction>('RIGHT')
+
+  const foodsRef = useRef<FoodItem[]>([])
   const [foods, setFoods] = useState<FoodItem[]>([])
+
+  const scoreRef = useRef(0)
   const [score, setScore] = useState(0)
-  const [lives, setLives] = useState(3) // 3点生命值保障
+
+  const livesRef = useRef(3)
+  const [lives, setLives] = useState(3)
+
+  const isPausedRef = useRef(false)
   const [isPaused, setIsPaused] = useState(false)
+
+  const isGameOverRef = useRef(false)
   const [isGameOver, setIsGameOver] = useState(false)
 
   /* 特殊增益状态 */
-  const [freezeTime, setFreezeTime] = useState(0) // 减速子弹时间
-  const [boostTime, setBoostTime] = useState(0) // 辣椒狂暴冲刺
-  const [magnetTime, setMagnetTime] = useState(0) // 磁力吸引
+  const freezeTimeRef = useRef(0)
+  const [freezeTime, setFreezeTime] = useState(0)
+
+  const boostTimeRef = useRef(0)
+  const [boostTime, setBoostTime] = useState(0)
+
+  const magnetTimeRef = useRef(0)
+  const [magnetTime, setMagnetTime] = useState(0)
 
   /* 连击倍率 */
+  const comboRef = useRef(0)
   const [combo, setCombo] = useState(0)
+
+  const comboTimerRef = useRef(0)
   const [comboTimer, setComboTimer] = useState(0)
 
   /* 手动冲刺按钮状态 */
+  const dashActiveRef = useRef(false)
   const [dashActive, setDashActive] = useState(false)
 
   /* 飘字特效 */
   const [popups, setPopups] = useState<{ id: number; x: number; y: number; text: string; color: string }[]>([])
+  const curMissionIdxRef = useRef(0)
   const [curMissionIdx, setCurMissionIdx] = useState(0)
   const [missionCompletePopup, setMissionCompletePopup] = useState<string | null>(null)
+
+  const bestScoreRef = useRef(bestScore)
+  const onBestScoreRef = useRef(onBestScore)
+  bestScoreRef.current = bestScore
+  onBestScoreRef.current = onBestScore
+  dashActiveRef.current = dashActive
+  isGameOverRef.current = isGameOver
+  isPausedRef.current = isPaused
 
   const uidRef = useRef(100)
   const nextUid = () => ++uidRef.current
@@ -568,75 +629,136 @@ export function StarlightGarden({
     return freeCells[Math.floor(Math.random() * freeCells.length)]
   }, [])
 
-  /* 初始化食物生成 */
-  const spawnInitialFoods = useCallback(() => {
-    const sun1 = getFreeCell([])
-    const sun2 = getFreeCell([sun1])
-    const cherry = getFreeCell([sun1, sun2])
+  /* 智能转向队列（平滑缓冲最多 2 个指令，100% 杜绝反向撞颈暴毙） */
+  const queueDirection = useCallback((newDir: Direction) => {
+    if (isGameOverRef.current || isPausedRef.current) return
+    const lastDir =
+      dirQueueRef.current.length > 0
+        ? dirQueueRef.current[dirQueueRef.current.length - 1]
+        : dirRef.current
 
-    const initialList: FoodItem[] = [
-      { id: nextUid(), x: sun1.x, y: sun1.y, type: 'sun', life: 999 },
-      { id: nextUid(), x: sun2.x, y: sun2.y, type: 'sun', life: 999 },
-      { id: nextUid(), x: cherry.x, y: cherry.y, type: 'cherry', life: 12 },
-    ]
-    setFoods(initialList)
-  }, [getFreeCell])
+    const isOpposite =
+      (newDir === 'UP' && lastDir === 'DOWN') ||
+      (newDir === 'DOWN' && lastDir === 'UP') ||
+      (newDir === 'LEFT' && lastDir === 'RIGHT') ||
+      (newDir === 'RIGHT' && lastDir === 'LEFT')
+
+    if (!isOpposite && newDir !== lastDir) {
+      if (dirQueueRef.current.length < 2) {
+        dirQueueRef.current.push(newDir)
+      }
+    }
+  }, [])
+
+  /* 全屏任意位置滑动手势操控 (Full-screen Swipe Gesture) */
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  const handleBoardPointerDown = (e: React.PointerEvent) => {
+    swipeStartRef.current = { x: e.clientX, y: e.clientY }
+  }
+
+  const handleBoardPointerMove = (e: React.PointerEvent) => {
+    if (!swipeStartRef.current) return
+    const dx = e.clientX - swipeStartRef.current.x
+    const dy = e.clientY - swipeStartRef.current.y
+    const dist = Math.hypot(dx, dy)
+    // 灵敏滑动识别（16px 触发，轻触即转，极其顺手）
+    if (dist >= 16) {
+      if (Math.abs(dx) > Math.abs(dy)) {
+        queueDirection(dx > 0 ? 'RIGHT' : 'LEFT')
+      } else {
+        queueDirection(dy > 0 ? 'DOWN' : 'UP')
+      }
+      swipeStartRef.current = { x: e.clientX, y: e.clientY }
+    }
+  }
+
+  const handleBoardPointerUp = () => {
+    swipeStartRef.current = null
+  }
 
   /* 重置开始游戏 */
   const startNewGame = useCallback(() => {
-    setSnake([
+    const initialSnake: Point[] = [
       { x: 14, y: 8 },
       { x: 13, y: 8 },
       { x: 12, y: 8 },
       { x: 11, y: 8 },
-    ])
+    ]
+    snakeRef.current = initialSnake
+    setSnake(initialSnake)
+
+    dirRef.current = 'RIGHT'
+    dirQueueRef.current = []
     setDir('RIGHT')
-    nextDirRef.current = 'RIGHT'
+
+    scoreRef.current = 0
     setScore(0)
+
+    livesRef.current = 3
     setLives(3)
+
+    comboRef.current = 0
     setCombo(0)
+
+    comboTimerRef.current = 0
     setComboTimer(0)
+
+    freezeTimeRef.current = 0
     setFreezeTime(0)
+
+    boostTimeRef.current = 0
     setBoostTime(0)
+
+    magnetTimeRef.current = 0
     setMagnetTime(0)
+
+    isPausedRef.current = false
     setIsPaused(false)
+
+    isGameOverRef.current = false
     setIsGameOver(false)
+
     setPopups([])
     setMissionCompletePopup(null)
-    spawnInitialFoods()
-  }, [spawnInitialFoods])
+
+    const sun1 = getFreeCell([])
+    const sun2 = getFreeCell([sun1])
+    const cherry = getFreeCell([sun1, sun2])
+    const initialFoods: FoodItem[] = [
+      { id: nextUid(), x: sun1.x, y: sun1.y, type: 'sun', life: 999 },
+      { id: nextUid(), x: sun2.x, y: sun2.y, type: 'sun', life: 999 },
+      { id: nextUid(), x: cherry.x, y: cherry.y, type: 'cherry', life: 12 },
+    ]
+    foodsRef.current = initialFoods
+    setFoods(initialFoods)
+  }, [getFreeCell])
 
   useEffect(() => {
     startNewGame()
   }, [startNewGame])
-
-  /* 摇杆转向回调 */
-  const handleJoystickDirection = useCallback((newDir: Direction) => {
-    const cur = nextDirRef.current
-    if (newDir === 'UP' && cur !== 'DOWN') nextDirRef.current = 'UP'
-    else if (newDir === 'DOWN' && cur !== 'UP') nextDirRef.current = 'DOWN'
-    else if (newDir === 'LEFT' && cur !== 'RIGHT') nextDirRef.current = 'LEFT'
-    else if (newDir === 'RIGHT' && cur !== 'LEFT') nextDirRef.current = 'RIGHT'
-  }, [])
 
   /* ───────────────────────────────────────────────────────────
      键盘控制绑定（WASD、方向键、空格冲刺）
      ─────────────────────────────────────────────────────────── */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const cur = nextDirRef.current
-      if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && cur !== 'DOWN') {
-        nextDirRef.current = 'UP'
-      } else if ((e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') && cur !== 'UP') {
-        nextDirRef.current = 'DOWN'
-      } else if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && cur !== 'RIGHT') {
-        nextDirRef.current = 'LEFT'
-      } else if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && cur !== 'LEFT') {
-        nextDirRef.current = 'RIGHT'
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        queueDirection('UP')
+      } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+        queueDirection('DOWN')
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        queueDirection('LEFT')
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        queueDirection('RIGHT')
       } else if (e.key === ' ') {
         setDashActive(true)
       } else if (e.key === 'p' || e.key === 'P') {
-        setIsPaused((p) => !p)
+        setIsPaused((p) => {
+          const nextP = !p
+          isPausedRef.current = nextP
+          return nextP
+        })
       }
     }
 
@@ -652,233 +774,254 @@ export function StarlightGarden({
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [])
+  }, [queueDirection])
 
   /* ───────────────────────────────────────────────────────────
-     游戏主时钟循环
+     游戏主时钟步进函数（权威同步执行，彻底消除得分丢失与延迟）
+     ─────────────────────────────────────────────────────────── */
+  const stepGame = useCallback(
+    (intervalMs: number) => {
+      const dt = intervalMs / 1000
+
+      // 更新增益状态
+      if (freezeTimeRef.current > 0) {
+        freezeTimeRef.current = Math.max(0, freezeTimeRef.current - dt)
+        setFreezeTime(freezeTimeRef.current)
+      }
+      if (boostTimeRef.current > 0) {
+        boostTimeRef.current = Math.max(0, boostTimeRef.current - dt)
+        setBoostTime(boostTimeRef.current)
+      }
+      if (magnetTimeRef.current > 0) {
+        magnetTimeRef.current = Math.max(0, magnetTimeRef.current - dt)
+        setMagnetTime(magnetTimeRef.current)
+      }
+
+      // 连击计时
+      if (comboTimerRef.current > 0) {
+        comboTimerRef.current = Math.max(0, comboTimerRef.current - dt)
+        if (comboTimerRef.current <= 0) {
+          comboRef.current = 0
+          setCombo(0)
+        }
+        setComboTimer(comboTimerRef.current)
+      }
+
+      // 食物自然腐化与随机刷新
+      const curFoods = foodsRef.current
+      const remainingFoods: FoodItem[] = []
+      curFoods.forEach((f) => {
+        if (f.life !== 999) {
+          f.life -= dt
+          if (f.life <= 0) return
+        }
+        remainingFoods.push(f)
+      })
+
+      if (Math.random() < 0.045 && remainingFoods.length < 5) {
+        const kinds: FoodType[] = ['cherry', 'freeze', 'jalapeno', 'magnet', 'zombie']
+        const picked = kinds[Math.floor(Math.random() * kinds.length)]
+        const cell = getFreeCell(snakeRef.current)
+        remainingFoods.push({
+          id: nextUid(),
+          x: cell.x,
+          y: cell.y,
+          type: picked,
+          life: picked === 'zombie' ? 18 : 12,
+        })
+      }
+      foodsRef.current = remainingFoods
+      setFoods([...remainingFoods])
+
+      // 方向处理（取出队列中的下一个方向）
+      const nextDir = dirQueueRef.current.shift() ?? dirRef.current
+      dirRef.current = nextDir
+      setDir(nextDir)
+
+      const curSnake = snakeRef.current
+      const head = curSnake[0]
+      const newHead: Point = { x: head.x, y: head.y }
+      if (nextDir === 'UP') newHead.y -= 1
+      if (nextDir === 'DOWN') newHead.y += 1
+      if (nextDir === 'LEFT') newHead.x -= 1
+      if (nextDir === 'RIGHT') newHead.x += 1
+
+      // 磁力吸附周围食物
+      if (magnetTimeRef.current > 0) {
+        foodsRef.current = foodsRef.current.map((f) => {
+          const dx = newHead.x - f.x
+          const dy = newHead.y - f.y
+          if (Math.hypot(dx, dy) <= 4.5 && f.type !== 'zombie') {
+            return {
+              ...f,
+              x: f.x + (dx > 0 ? 1 : dx < 0 ? -1 : 0),
+              y: f.y + (dy > 0 ? 1 : dy < 0 ? -1 : 0),
+            }
+          }
+          return f
+        })
+        setFoods([...foodsRef.current])
+      }
+
+      // 碰撞检测：撞墙或撞自身
+      const hitWall =
+        newHead.x < 0 || newHead.x >= GRID_COLS || newHead.y < 0 || newHead.y >= GRID_ROWS
+      const hitSelf = curSnake.slice(1).some((seg) => seg.x === newHead.x && seg.y === newHead.y)
+
+      if (hitWall || hitSelf) {
+        if (boostTimeRef.current > 0) {
+          newHead.x = (newHead.x + GRID_COLS) % GRID_COLS
+          newHead.y = (newHead.y + GRID_ROWS) % GRID_ROWS
+        } else {
+          audio.playLose()
+          livesRef.current -= 1
+          setLives(livesRef.current)
+          if (livesRef.current <= 0) {
+            isGameOverRef.current = true
+            setIsGameOver(true)
+            if (scoreRef.current > bestScoreRef.current) {
+              onBestScoreRef.current(scoreRef.current)
+            }
+            return
+          }
+          showPop(head.x, head.y, '哎呀！生命 -1', '#f87171')
+          snakeRef.current = curSnake.slice(0, Math.max(3, Math.floor(curSnake.length * 0.7)))
+          setSnake([...snakeRef.current])
+          return
+        }
+      }
+
+      // 食物吃取判定（100% 同步执行，立刻加分，立刻飘字，绝不丢失）
+      const eatenIdx = foodsRef.current.findIndex(
+        (f) => f.x === newHead.x && f.y === newHead.y
+      )
+
+      let grew = false
+      if (eatenIdx !== -1) {
+        const food = foodsRef.current[eatenIdx]
+        foodsRef.current.splice(eatenIdx, 1)
+
+        let addedScore = 15
+        let growCount = 1
+
+        const currentCombo = comboRef.current
+        const mult = currentCombo >= 8 ? 3.0 : currentCombo >= 5 ? 2.0 : currentCombo >= 2 ? 1.5 : 1.0
+
+        if (food.type === 'sun') {
+          audio.playSun()
+          addedScore = 15
+          growCount = 1
+          showPop(newHead.x, newHead.y, `+${Math.round(addedScore * mult)}`, '#fde047')
+        } else if (food.type === 'cherry') {
+          audio.playExplosion()
+          addedScore = 60
+          growCount = 2
+          showPop(newHead.x, newHead.y, `双子樱桃 +${Math.round(addedScore * mult)}!`, '#f43f5e')
+        } else if (food.type === 'freeze') {
+          audio.playFreezeShoot()
+          freezeTimeRef.current = 6.0
+          setFreezeTime(6.0)
+          addedScore = 40
+          showPop(newHead.x, newHead.y, '冰霜减速 6s!', '#38bdf8')
+        } else if (food.type === 'jalapeno') {
+          audio.playExplosion()
+          boostTimeRef.current = 5.0
+          setBoostTime(5.0)
+          addedScore = 50
+          showPop(newHead.x, newHead.y, '狂暴冲刺 5s!', '#ef4444')
+        } else if (food.type === 'magnet') {
+          audio.playSun()
+          magnetTimeRef.current = 6.0
+          setMagnetTime(6.0)
+          addedScore = 40
+          showPop(newHead.x, newHead.y, '磁力开启 6s!', '#a855f7')
+        } else if (food.type === 'zombie') {
+          audio.playZombieDie()
+          addedScore = selectedSkin === 'star' ? 240 : 120
+          growCount = 2
+          showPop(newHead.x, newHead.y, `吞食僵尸 +${addedScore}!`, '#22c55e')
+        }
+
+        comboRef.current += 1
+        comboTimerRef.current = 3.5
+        setCombo(comboRef.current)
+        setComboTimer(3.5)
+
+        const finalEarn = Math.round(addedScore * mult)
+        scoreRef.current += finalEarn
+        setScore(scoreRef.current)
+        if (scoreRef.current > bestScoreRef.current) {
+          onBestScoreRef.current(scoreRef.current)
+        }
+
+        // 身体生长
+        const newBody = [newHead, ...curSnake]
+        if (growCount > 1) {
+          newBody.push(curSnake[curSnake.length - 1])
+        }
+        snakeRef.current = newBody
+        setSnake([...newBody])
+        grew = true
+
+        // 保证场上持续有阳光（至少 2 个，方便大地图畅快游玩）
+        const sunCount = foodsRef.current.filter((f) => f.type === 'sun').length
+        if (sunCount < 2) {
+          for (let s = sunCount; s < 2; s++) {
+            const newSun = getFreeCell(newBody)
+            foodsRef.current.push({ id: nextUid(), x: newSun.x, y: newSun.y, type: 'sun', life: 999 })
+          }
+        }
+        setFoods([...foodsRef.current])
+
+        // 任务进度检测
+        const curM = MISSIONS[curMissionIdxRef.current]
+        if (curM && (scoreRef.current >= curM.targetScore || newBody.length >= curM.targetLength)) {
+          setMissionCompletePopup(`🎉 目标达成：${curM.title} (+${curM.rewardBonus}分)`)
+          scoreRef.current += curM.rewardBonus
+          setScore(scoreRef.current)
+          if (curMissionIdxRef.current < MISSIONS.length - 1) {
+            curMissionIdxRef.current += 1
+            setCurMissionIdx(curMissionIdxRef.current)
+          }
+          setTimeout(() => setMissionCompletePopup(null), 3000)
+        }
+      }
+
+      if (!grew) {
+        const newBody = [newHead, ...curSnake.slice(0, -1)]
+        snakeRef.current = newBody
+        setSnake(newBody)
+      }
+    },
+    [getFreeCell, selectedSkin, showPop],
+  )
+
+  /* ───────────────────────────────────────────────────────────
+     游戏主时钟循环（递归 setTimeout 动态自适应频率）
      ─────────────────────────────────────────────────────────── */
   useEffect(() => {
     if (isGameOver || isPaused) return
 
-    // 初始速度调优：由过快的 130ms 优化为极其舒适平稳的 220ms，随分数温和递增（下限 150ms，杜绝失控）
-    const baseSpeed = Math.max(150, 220 - Math.floor(score / 35) * 8)
-    let intervalMs = baseSpeed
-    if (freezeTime > 0) intervalMs = Math.round(baseSpeed * 1.55) // 寒冰减速：子弹时间约 320ms~340ms
-    if (dashActive || boostTime > 0) intervalMs = Math.round(baseSpeed * 0.48) // 冲刺极速：约 90ms~105ms
+    let timerId: ReturnType<typeof setTimeout>
 
-    const timer = setInterval(() => {
-      setFreezeTime((t) => Math.max(0, t - intervalMs / 1000))
-      setBoostTime((t) => Math.max(0, t - intervalMs / 1000))
-      setMagnetTime((t) => Math.max(0, t - intervalMs / 1000))
-      setComboTimer((t) => {
-        if (t <= intervalMs / 1000) {
-          setCombo(0)
-          return 0
-        }
-        return t - intervalMs / 1000
-      })
+    const loop = () => {
+      const curScore = scoreRef.current
+      const baseSpeed = Math.max(150, 220 - Math.floor(curScore / 35) * 8)
+      let intervalMs = baseSpeed
+      if (freezeTimeRef.current > 0) intervalMs = Math.round(baseSpeed * 1.55)
+      if (dashActiveRef.current || boostTimeRef.current > 0) intervalMs = Math.round(baseSpeed * 0.48)
 
-      /* 食物生命期与磁力吸引 */
-      setFoods((curFoods) => {
-        const remainingFoods: FoodItem[] = []
-        curFoods.forEach((f) => {
-          if (f.life !== 999) {
-            f.life -= intervalMs / 1000
-            if (f.life <= 0) return
-          }
-          remainingFoods.push(f)
-        })
+      stepGame(intervalMs)
 
-        if (Math.random() < 0.045 && remainingFoods.length < 5) {
-          const kinds: FoodType[] = ['cherry', 'freeze', 'jalapeno', 'magnet', 'zombie']
-          const picked = kinds[Math.floor(Math.random() * kinds.length)]
-          const cell = getFreeCell(snake)
-          remainingFoods.push({
-            id: nextUid(),
-            x: cell.x,
-            y: cell.y,
-            type: picked,
-            life: picked === 'zombie' ? 18 : 12,
-          })
-        }
+      if (!isGameOverRef.current && !isPausedRef.current) {
+        timerId = setTimeout(loop, intervalMs)
+      }
+    }
 
-        return remainingFoods
-      })
+    timerId = setTimeout(loop, 220)
 
-      /* 贪吃蛇向前行进一格 */
-      setSnake((curSnake) => {
-        const curDir = nextDirRef.current
-        setDir(curDir)
-
-        const head = curSnake[0]
-        const newHead: Point = { x: head.x, y: head.y }
-
-        if (curDir === 'UP') newHead.y -= 1
-        if (curDir === 'DOWN') newHead.y += 1
-        if (curDir === 'LEFT') newHead.x -= 1
-        if (curDir === 'RIGHT') newHead.x += 1
-
-        // 磁力吸取周围食物判定
-        if (magnetTime > 0) {
-          setFoods((fs) =>
-            fs.map((f) => {
-              const dx = newHead.x - f.x
-              const dy = newHead.y - f.y
-              if (Math.hypot(dx, dy) <= 4.5 && f.type !== 'zombie') {
-                return {
-                  ...f,
-                  x: f.x + (dx > 0 ? 1 : dx < 0 ? -1 : 0),
-                  y: f.y + (dy > 0 ? 1 : dy < 0 ? -1 : 0),
-                }
-              }
-              return f
-            }),
-          )
-        }
-
-        // 碰撞判定：撞墙或撞到身体
-        const hitWall =
-          newHead.x < 0 || newHead.x >= GRID_COLS || newHead.y < 0 || newHead.y >= GRID_ROWS
-        const hitSelf = curSnake.slice(1).some((seg) => seg.x === newHead.x && seg.y === newHead.y)
-
-        if (hitWall || hitSelf) {
-          if (boostTime > 0) {
-            newHead.x = (newHead.x + GRID_COLS) % GRID_COLS
-            newHead.y = (newHead.y + GRID_ROWS) % GRID_ROWS
-          } else {
-            audio.playLose()
-            setLives((l) => {
-              const nextL = l - 1
-              if (nextL <= 0) {
-                setIsGameOver(true)
-                setScore((curS) => {
-                  if (curS > bestScore) {
-                    onBestScore(curS)
-                  }
-                  return curS
-                })
-              }
-              return nextL
-            })
-            showPop(head.x, head.y, '哎呀！注意避让', '#f87171')
-            return curSnake.slice(0, Math.max(3, Math.floor(curSnake.length * 0.7)))
-          }
-        }
-
-        // 检测是否吃到了食物
-        let ateFood: FoodItem | null = null
-        setFoods((currentFoods) => {
-          const eatenIdx = currentFoods.findIndex(
-            (f) => f.x === newHead.x && f.y === newHead.y,
-          )
-          if (eatenIdx !== -1) {
-            ateFood = currentFoods[eatenIdx]
-            return currentFoods.filter((_, idx) => idx !== eatenIdx)
-          }
-          return currentFoods
-        })
-
-        if (ateFood) {
-          const food: FoodItem = ateFood
-          let addedScore = 15
-          let growLength = 1
-
-          if (food.type === 'sun') {
-            audio.playSun()
-            addedScore = 15
-            growLength = 1
-            showPop(newHead.x, newHead.y, `+${Math.round(addedScore * comboMultiplier)}`, '#fde047')
-          } else if (food.type === 'cherry') {
-            audio.playExplosion()
-            addedScore = 60
-            growLength = 2
-            showPop(newHead.x, newHead.y, `双子樱桃 +${Math.round(addedScore * comboMultiplier)}!`, '#f43f5e')
-          } else if (food.type === 'freeze') {
-            audio.playFreezeShoot()
-            setFreezeTime(6.0)
-            addedScore = 40
-            showPop(newHead.x, newHead.y, '冰霜减速 6s!', '#38bdf8')
-          } else if (food.type === 'jalapeno') {
-            audio.playExplosion()
-            setBoostTime(5.0)
-            addedScore = 50
-            showPop(newHead.x, newHead.y, '狂暴冲刺 5s!', '#ef4444')
-          } else if (food.type === 'magnet') {
-            audio.playSun()
-            setMagnetTime(6.0)
-            addedScore = 40
-            showPop(newHead.x, newHead.y, '磁力开启 6s!', '#a855f7')
-          } else if (food.type === 'zombie') {
-            audio.playZombieDie()
-            addedScore = selectedSkin === 'star' ? 240 : 120
-            growLength = 2
-            showPop(newHead.x, newHead.y, `吞食僵尸 +${addedScore}!`, '#22c55e')
-          }
-
-          setCombo((c) => c + 1)
-          setComboTimer(3.5)
-
-          const finalEarn = Math.round(addedScore * comboMultiplier)
-          setScore((s) => {
-            const nextScore = s + finalEarn
-            if (nextScore > bestScore) {
-              onBestScore(nextScore)
-            }
-            return nextScore
-          })
-
-          // 达成任务判定
-          const curM = MISSIONS[curMissionIdx]
-          if (curM && (score + finalEarn >= curM.targetScore || curSnake.length + growLength >= curM.targetLength)) {
-            setMissionCompletePopup(`🎉 目标达成：${curM.title} (+${curM.rewardBonus}分)`)
-            setScore((s) => s + curM.rewardBonus)
-            if (curMissionIdx < MISSIONS.length - 1) {
-              setCurMissionIdx((i) => i + 1)
-            }
-            setTimeout(() => setMissionCompletePopup(null), 3000)
-          }
-
-          // 补充阳光
-          setFoods((fs) => {
-            const hasSun = fs.some((f) => f.type === 'sun')
-            if (!hasSun) {
-              const newSun = getFreeCell([...curSnake, newHead])
-              return [...fs, { id: nextUid(), x: newSun.x, y: newSun.y, type: 'sun', life: 999 }]
-            }
-            return fs
-          })
-
-          // 身体生长
-          const newBody = [newHead, ...curSnake]
-          if (growLength > 1) {
-            newBody.push(curSnake[curSnake.length - 1])
-          }
-          return newBody
-        }
-
-        // 未吃到食物正常前进
-        return [newHead, ...curSnake.slice(0, -1)]
-      })
-    }, intervalMs)
-
-    return () => clearInterval(timer)
-  }, [
-    isGameOver,
-    isPaused,
-    freezeTime,
-    dashActive,
-    boostTime,
-    magnetTime,
-    comboMultiplier,
-    score,
-    bestScore,
-    onBestScore,
-    selectedSkin,
-    curMissionIdx,
-    getFreeCell,
-    snake,
-    showPop,
-  ])
+    return () => clearTimeout(timerId)
+  }, [isGameOver, isPaused, stepGame])
 
   const skin = SKINS.find((s) => s.id === selectedSkin) ?? SKINS[0]
 
@@ -1040,11 +1183,17 @@ export function StarlightGarden({
       {/* ───────────────────────────────────────────────────────────
           横屏主舞台：28 × 16 黄金宽屏极限草坪战场（告别狭窄中间方块）
           ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center p-1 sm:p-2 overflow-hidden w-full relative">
+      <div
+        onPointerDown={handleBoardPointerDown}
+        onPointerMove={handleBoardPointerMove}
+        onPointerUp={handleBoardPointerUp}
+        onPointerCancel={handleBoardPointerUp}
+        className="flex-1 flex items-center justify-center p-1 sm:p-2 overflow-hidden w-full relative touch-none select-none"
+      >
         {/* 宽屏草坪棋盘：7:4 比例，横屏极限铺开 */}
         <div
           className={cn(
-            'relative aspect-[28/16] h-[calc(100dvh-2.8rem)] max-h-[min(98vw,88vh,720px)] w-full max-w-[min(98vw,calc((100dvh-2.8rem)*1.75))] rounded-2xl sm:rounded-3xl border-4 overflow-hidden select-none transition-colors duration-500',
+            'relative aspect-[28/16] h-[calc(100dvh-2.8rem)] max-h-[min(98vw,88vh,720px)] w-full max-w-[min(98vw,calc((100dvh-2.8rem)*1.75))] rounded-2xl sm:rounded-3xl border-4 overflow-hidden select-none transition-colors duration-500 touch-none',
             mapTheme.boardBorder,
             mapTheme.boardBg,
             mapTheme.boardGlow,
@@ -1223,7 +1372,7 @@ export function StarlightGarden({
           {/* 左下角：悬浮半透明发光触控摇杆 HUD */}
           <div className="absolute bottom-2.5 left-2.5 z-30 pointer-events-auto select-none touch-none">
             <VirtualJoystick
-              onDirection={handleJoystickDirection}
+              onDirection={queueDirection}
               currentDir={dir}
               mapTheme={mapTheme}
             />
@@ -1232,9 +1381,18 @@ export function StarlightGarden({
           {/* 右下角：悬浮半透明极速冲刺按钮 HUD 与状态指示 */}
           <div className="absolute bottom-2.5 right-2.5 z-30 flex flex-col items-center gap-1 pointer-events-auto select-none touch-none">
             <button
-              onPointerDown={() => setDashActive(true)}
-              onPointerUp={() => setDashActive(false)}
-              onPointerCancel={() => setDashActive(false)}
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                setDashActive(true)
+              }}
+              onPointerUp={(e) => {
+                e.stopPropagation()
+                setDashActive(false)
+              }}
+              onPointerCancel={(e) => {
+                e.stopPropagation()
+                setDashActive(false)
+              }}
               className={cn(
                 'size-18 sm:size-22 rounded-full border-2 flex flex-col items-center justify-center shadow-lg transition-all active:scale-95 select-none touch-none backdrop-blur-md',
                 dashActive || boostTime > 0
