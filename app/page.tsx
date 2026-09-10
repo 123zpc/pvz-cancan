@@ -405,6 +405,7 @@ export default function Page() {
         onExit={() => setView('levels')}
         onWin={handleWin}
         onNext={nextLevel ? () => { setLevel(nextLevel); setView('battle') } : undefined}
+        theme={siteTheme}
       />
     )
   }

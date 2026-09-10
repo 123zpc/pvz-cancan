@@ -9,15 +9,19 @@ import { Button } from '@/components/ui/button'
 import { Board } from './board'
 import { MusicToggle, MusicToggleFull } from './music-toggle'
 import { SeedBank } from './seed-bank'
+import { cn } from '@/lib/utils'
+import { PROMPT_THEMES } from './starlight-garden'
+import type { SiteTheme } from '@/lib/api'
 
 interface BattleProps {
   level: Level
   onExit: () => void
   onWin: (levelId: number, timeSec: number) => void
   onNext?: () => void
+  theme?: SiteTheme
 }
 
-export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
+export function Battle({ level, onExit, onWin, onNext, theme }: BattleProps) {
   const gameRef = useRef<GameState>(createGame(level))
   const [, force] = useState(0)
   const [round, setRound] = useState(0)
@@ -348,32 +352,101 @@ export function Battle({ level, onExit, onWin, onNext }: BattleProps) {
 
   /* ── 移动端竖屏：旋转提示 + 横屏按钮 ── */
   if (!landscape) {
+    const pt = PROMPT_THEMES[theme ?? 'classic'] ?? PROMPT_THEMES.classic
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-background p-8 text-center">
-        <div className="anim-rotate-phone">
-          <svg className="size-20 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <div
+        className={cn(
+          'fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 p-8 text-center text-white select-none overflow-hidden transition-colors duration-500 bg-gradient-to-b',
+          pt.bgGradient,
+        )}
+      >
+        {/* 背景氛围晕染光斑 */}
+        <div
+          className={cn(
+            'absolute size-80 rounded-full blur-3xl pointer-events-none -top-10 -left-10',
+            pt.radialGlow,
+          )}
+        />
+        <div
+          className={cn(
+            'absolute size-80 rounded-full blur-3xl pointer-events-none -bottom-10 -right-10',
+            pt.radialGlow,
+          )}
+        />
+
+        {/* 悬浮主题元素微装饰 */}
+        {pt.floatingEmojis.map((item, i) => (
+          <span
+            key={i}
+            className={cn('absolute pointer-events-none select-none opacity-40', item.className)}
+            aria-hidden="true"
+          >
+            {item.emoji}
+          </span>
+        ))}
+
+        {/* 当前主题标识丸 */}
+        <div
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-xs font-black shadow-sm backdrop-blur-md',
+            pt.tagBg,
+            pt.tagText,
+          )}
+        >
+          {pt.tag}
+        </div>
+
+        {/* 旋转手机动效 */}
+        <div className={cn('anim-rotate-phone', pt.phoneGlow)}>
+          <svg
+            className={cn('size-20', pt.phoneColor)}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <rect x="5" y="2" width="14" height="20" rx="3" />
             <path d="M12 18h.01" />
           </svg>
         </div>
+
         <div>
-          <h2 className="font-display text-xl font-bold">请旋转手机至横屏</h2>
-          <p className="mt-2 text-sm text-muted-foreground">横屏体验更佳，草坪防线一览无余</p>
+          <h2 className={cn('font-display text-2xl font-black', pt.titleColor)}>
+            请旋转手机至横屏
+          </h2>
+          <p className={cn('mt-2 text-sm leading-relaxed max-w-xs font-medium', pt.descColor)}>
+            横屏体验更佳，草坪防线一览无余
+          </p>
         </div>
-        <Button onClick={tryLandscape} className="rounded-full">
-          <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M21 16v5h-5" />
-            <path d="M21 8V3h-5" />
-            <path d="M3 16v5h5" />
-            <path d="M3 8V3h5" />
-          </svg>
-          自动横屏
-        </Button>
-        <Button variant="secondary" size="sm" onClick={onExit} className="rounded-full">
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          返回关卡
-        </Button>
-        <p className="text-xs text-muted-foreground/70">iOS 设备请手动旋转；Android 可自动切换</p>
+
+        <div className="flex flex-col gap-3 sm:flex-row w-full max-w-xs z-10">
+          <Button
+            onClick={tryLandscape}
+            className={cn(
+              'flex w-full items-center justify-center gap-2 rounded-full py-3.5 font-display text-sm font-extrabold text-white transition active:scale-95 cursor-pointer shadow-lg',
+              pt.buttonGradient,
+              pt.buttonShadow,
+            )}
+          >
+            <Maximize className="size-4" />
+            自动全屏横屏
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onExit}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-white/10 hover:bg-white/15 py-3 text-xs font-bold text-slate-200 transition active:scale-95 border border-white/10 cursor-pointer"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            返回关卡
+          </Button>
+        </div>
+        <p className="text-xs text-white/50 max-w-xs leading-relaxed z-10">
+          iOS 设备请关闭控制中心的竖排方向锁定并横放手机；Android 可直接点击自动横屏
+        </p>
       </div>
     )
   }

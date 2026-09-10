@@ -156,6 +156,80 @@ export const SNAKE_MAP_THEMES: Record<SiteTheme, SnakeMapThemeConfig> = {
   },
 }
 
+interface PromptThemeConfig {
+  bgGradient: string
+  radialGlow: string
+  phoneColor: string
+  phoneGlow: string
+  tag: string
+  tagBg: string
+  tagText: string
+  titleColor: string
+  descColor: string
+  buttonGradient: string
+  buttonShadow: string
+  floatingEmojis: { emoji: string; className: string }[]
+}
+
+export const PROMPT_THEMES: Record<SiteTheme, PromptThemeConfig> = {
+  classic: {
+    bgGradient: 'from-[#0b1b10] via-[#08120a] to-[#040805]',
+    radialGlow: 'bg-emerald-500/15',
+    phoneColor: 'text-emerald-400',
+    phoneGlow: 'drop-shadow-[0_0_20px_rgba(52,211,153,0.5)]',
+    tag: '🌿 经典草坪模式',
+    tagBg: 'border-emerald-400/30 bg-emerald-500/10',
+    tagText: 'text-emerald-300',
+    titleColor: 'text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.35)]',
+    descColor: 'text-emerald-100/85',
+    buttonGradient: 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-700',
+    buttonShadow: 'shadow-[0_4px_24px_rgba(16,185,129,0.35)]',
+    floatingEmojis: [
+      { emoji: '🍀', className: 'top-[12%] left-[12%] text-2xl animate-bounce' },
+      { emoji: '🌱', className: 'bottom-[15%] right-[12%] text-2xl animate-pulse' },
+      { emoji: '☀️', className: 'top-[18%] right-[15%] text-2xl animate-spin' },
+    ],
+  },
+  qixi: {
+    bgGradient: 'from-[#21092e] via-[#12051c] to-[#08020d]',
+    radialGlow: 'bg-pink-500/20',
+    phoneColor: 'text-pink-400',
+    phoneGlow: 'drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]',
+    tag: '🌌 七夕星河限定',
+    tagBg: 'border-pink-400/30 bg-pink-500/15',
+    tagText: 'text-pink-300',
+    titleColor: 'text-rose-200 drop-shadow-[0_0_12px_rgba(244,63,94,0.4)]',
+    descColor: 'text-pink-100/85',
+    buttonGradient: 'bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600',
+    buttonShadow: 'shadow-[0_4px_24px_rgba(244,63,94,0.4)]',
+    floatingEmojis: [
+      { emoji: '✨', className: 'top-[12%] left-[12%] text-2xl animate-pulse' },
+      { emoji: '💖', className: 'bottom-[16%] left-[15%] text-xl animate-bounce' },
+      { emoji: '🌙', className: 'top-[15%] right-[15%] text-2xl animate-pulse' },
+      { emoji: '🪶', className: 'bottom-[18%] right-[12%] text-xl animate-bounce' },
+    ],
+  },
+  autumn: {
+    bgGradient: 'from-[#2a1303] via-[#160a01] to-[#0a0400]',
+    radialGlow: 'bg-amber-500/20',
+    phoneColor: 'text-amber-400',
+    phoneGlow: 'drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]',
+    tag: '🍁 金秋丰收限定',
+    tagBg: 'border-amber-400/30 bg-amber-500/15',
+    tagText: 'text-amber-300',
+    titleColor: 'text-amber-300 drop-shadow-[0_0_12px_rgba(245,158,11,0.4)]',
+    descColor: 'text-amber-100/85',
+    buttonGradient: 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600',
+    buttonShadow: 'shadow-[0_4px_24px_rgba(245,158,11,0.4)]',
+    floatingEmojis: [
+      { emoji: '🍁', className: 'top-[12%] left-[12%] text-2xl animate-bounce' },
+      { emoji: '🍂', className: 'bottom-[15%] left-[15%] text-2xl animate-pulse' },
+      { emoji: '🌾', className: 'top-[18%] right-[12%] text-2xl animate-pulse' },
+      { emoji: '🎃', className: 'bottom-[18%] right-[15%] text-xl animate-bounce' },
+    ],
+  },
+}
+
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT'
 
 interface Point {
@@ -1184,40 +1258,99 @@ export function StarlightGarden({
      移动端竖屏状态：引导旋转至横屏
      ─────────────────────────────────────────────────────────── */
   if (mobileUI && !landscape) {
+    const pt = PROMPT_THEMES[activeThemeId] ?? PROMPT_THEMES.classic
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-[#08120a] p-8 text-center text-white select-none">
-        <div className="anim-rotate-phone">
-          <svg className="size-20 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <div
+        className={cn(
+          'fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 p-8 text-center text-white select-none overflow-hidden transition-colors duration-500 bg-gradient-to-b',
+          pt.bgGradient,
+        )}
+      >
+        {/* 背景氛围晕染光斑 */}
+        <div
+          className={cn(
+            'absolute size-80 rounded-full blur-3xl pointer-events-none -top-10 -left-10',
+            pt.radialGlow,
+          )}
+        />
+        <div
+          className={cn(
+            'absolute size-80 rounded-full blur-3xl pointer-events-none -bottom-10 -right-10',
+            pt.radialGlow,
+          )}
+        />
+
+        {/* 悬浮主题元素微装饰 */}
+        {pt.floatingEmojis.map((item, i) => (
+          <span
+            key={i}
+            className={cn('absolute pointer-events-none select-none opacity-40', item.className)}
+            aria-hidden="true"
+          >
+            {item.emoji}
+          </span>
+        ))}
+
+        {/* 当前主题标识丸 */}
+        <div
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1 text-xs font-black shadow-sm backdrop-blur-md',
+            pt.tagBg,
+            pt.tagText,
+          )}
+        >
+          {pt.tag}
+        </div>
+
+        {/* 旋转手机动效 */}
+        <div className={cn('anim-rotate-phone', pt.phoneGlow)}>
+          <svg
+            className={cn('size-20', pt.phoneColor)}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <rect x="5" y="2" width="14" height="20" rx="3" />
             <path d="M12 18h.01" />
           </svg>
         </div>
+
         <div>
-          <h2 className="font-display text-2xl font-black text-amber-300">
+          <h2 className={cn('font-display text-2xl font-black', pt.titleColor)}>
             请旋转手机至横屏
           </h2>
-          <p className="mt-2 text-sm text-emerald-100/80 leading-relaxed max-w-xs">
+          <p className={cn('mt-2 text-sm leading-relaxed max-w-xs font-medium', pt.descColor)}>
             萌藤贪吃蛇需要横屏畅玩，视野更宽广，双拇指操控更畅快！
           </p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row w-full max-w-xs">
+
+        <div className="flex flex-col gap-3 sm:flex-row w-full max-w-xs z-10">
           <button
             onClick={tryLandscape}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 py-3.5 font-display text-sm font-extrabold text-white shadow-lg transition active:scale-95"
+            className={cn(
+              'flex w-full items-center justify-center gap-2 rounded-full py-3.5 font-display text-sm font-extrabold text-white transition active:scale-95 cursor-pointer shadow-lg',
+              pt.buttonGradient,
+              pt.buttonShadow,
+            )}
           >
             <Maximize className="size-4" />
             自动全屏横屏
           </button>
           <button
             onClick={onBack}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-white/10 py-3 text-xs font-bold text-slate-300 transition active:scale-95"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-white/10 hover:bg-white/15 py-3 text-xs font-bold text-slate-200 transition active:scale-95 border border-white/10 cursor-pointer"
           >
             <ArrowLeft className="size-4" />
             返回主菜单
           </button>
         </div>
-        <p className="text-xs text-muted-foreground/70">
-          iOS 设备请关闭控制中心的竖排锁定并横放手机；Android 可直接点击自动横屏
+
+        <p className="text-xs text-white/50 max-w-xs leading-relaxed z-10">
+          iOS 设备请关闭控制中心的竖排方向锁定并横放手机；Android 可直接点击自动横屏
         </p>
       </div>
     )
