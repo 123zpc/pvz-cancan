@@ -61,8 +61,16 @@ export function AutumnDecor() {
 
   return (
     <>
-      {/* 飘落枫叶层（pointer-events-none，不影响点击） */}
-      <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
+      {/* 飘落枫叶层（pointer-events-none，不影响点击；顶部透明渐入，避免飘过苹果灵动岛时触发像素采样闪烁） */}
+      <div
+        className="pointer-events-none fixed inset-0 z-[1] overflow-hidden"
+        style={{
+          maskImage:
+            'linear-gradient(to bottom, transparent 0%, transparent max(env(safe-area-inset-top, 0px), 24px), black max(env(safe-area-inset-top, 0px), 48px))',
+          WebkitMaskImage:
+            'linear-gradient(to bottom, transparent 0%, transparent max(env(safe-area-inset-top, 0px), 24px), black max(env(safe-area-inset-top, 0px), 48px))',
+        }}
+      >
         {AUTUMN_LEAVES.map((leaf, i) => (
           <div
             key={i}

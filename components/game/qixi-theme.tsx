@@ -221,21 +221,15 @@ export function QixiDecor() {
 
   return (
     <>
-      {/* 星空横幅：银河、鹊桥、双星、流星（天幕罩在页面顶部，不被各页背景遮挡，pointer-events-none 不挡操作） */}
+      {/* 星空横幅：银河、鹊桥、双星、流星（从状态栏下方柔和透出，顶部 100% 透明，彻底杜绝污染 iOS 顶部状态栏与灵动岛取色） */}
       <div
         className="pointer-events-none fixed inset-x-0 top-0 z-[6] h-32 overflow-hidden"
         style={{
           background:
-            'linear-gradient(to bottom, oklch(0.3 0.1 285 / 0.5), oklch(0.33 0.1 300 / 0.22) 55%, transparent)',
+            'linear-gradient(to bottom, transparent 0%, transparent max(env(safe-area-inset-top, 0px), 24px), oklch(0.3 0.1 285 / 0.28) 45%, oklch(0.33 0.1 300 / 0.12) 75%, transparent 100%)',
         }}
         aria-hidden="true"
       >
-        {/* 状态栏安全区玫瑰色遮罩：避免横幅深色背景污染 iOS 状态栏区域，让它显示与 body 一致的玫瑰色 */}
-        <div
-          className="absolute inset-x-0 top-0 z-[7]"
-          style={{ height: 'env(safe-area-inset-top, 0px)', backgroundColor: 'oklch(0.965 0.022 350)' }}
-          aria-hidden="true"
-        />
         {/* 星群 */}
         {BAND_STARS.map((s, i) => (
           <Star4

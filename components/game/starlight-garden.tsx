@@ -660,9 +660,11 @@ export function StarlightGarden({
   useEffect(() => {
     if (isGameOver || isPaused) return
 
-    let intervalMs = 130
-    if (freezeTime > 0) intervalMs = 200
-    if (dashActive || boostTime > 0) intervalMs = 68
+    // 初始速度调优：由过快的 130ms 优化为极其舒适平稳的 220ms，随分数温和递增（下限 150ms，杜绝失控）
+    const baseSpeed = Math.max(150, 220 - Math.floor(score / 35) * 8)
+    let intervalMs = baseSpeed
+    if (freezeTime > 0) intervalMs = Math.round(baseSpeed * 1.55) // 寒冰减速：子弹时间约 320ms~340ms
+    if (dashActive || boostTime > 0) intervalMs = Math.round(baseSpeed * 0.48) // 冲刺极速：约 90ms~105ms
 
     const timer = setInterval(() => {
       setFreezeTime((t) => Math.max(0, t - intervalMs / 1000))

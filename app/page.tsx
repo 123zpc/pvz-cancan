@@ -116,7 +116,12 @@ export default function Page() {
 
   useEffect(() => {
     setMounted(true)
-    setSiteTheme(loadThemeCache())
+    const cached = loadThemeCache()
+    setSiteTheme(cached)
+    // 首次载入毫秒级同步 theme-color，避免 iOS 状态栏首屏闪烁
+    const initialColor = cached === 'qixi' ? '#fb7185' : cached === 'autumn' ? '#f59e0b' : '#8ed17a'
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute('content', initialColor)
   }, [])
 
   // 全局防御：禁止游戏内任何元素被选中文本、复制与长按呼出原生操作菜单（针对 iOS Safari，放行输入框）
@@ -169,17 +174,26 @@ export default function Page() {
     }
   }, [applyTheme])
 
-  // 主题属性挂到 <html>，驱动 CSS 变量换装；同步切换 theme-color meta
+  // 主题属性挂到 <html>，驱动 CSS 变量换装；同步精准切换 theme-color meta
+  // 核心修复：金秋与七夕必须使用有充分色彩饱和度的代表色（#f59e0b 与 #fb7185），杜绝因明度超标（>90%）而触发苹果 iOS Safari 状态栏/灵动岛灰黑保护遮罩
   useEffect(() => {
     document.documentElement.dataset.theme = siteTheme
     document.documentElement.dataset.qixi = siteTheme === 'qixi' ? 'on' : 'off'
-    const meta = document.querySelector('meta[name="theme-color"]')
-    if (meta) {
-      meta.setAttribute(
-        'content',
-        siteTheme === 'qixi' ? '#fbe9ee' : siteTheme === 'autumn' ? '#fef3c7' : '#8ed17a'
-      )
+
+    const targetColor =
+      siteTheme === 'qixi'
+        ? '#fb7185' // 浪漫玫瑰粉（明度适中，与 #8ed17a 同级，iOS Safari 状态栏呈现通透温润的粉色）
+        : siteTheme === 'autumn'
+        ? '#f59e0b' // 金秋琥珀金（饱和度高，对比鲜明，iOS Safari 状态栏呈现纯正温暖的金秋色）
+        : '#8ed17a' // 经典草坪绿
+
+    let meta = document.querySelector('meta[name="theme-color"]')
+    if (!meta) {
+      meta = document.createElement('meta')
+      meta.setAttribute('name', 'theme-color')
+      document.head.appendChild(meta)
     }
+    meta.setAttribute('content', targetColor)
   }, [siteTheme])
 
   // 启动时：检查 token 是否仍有效，并从后端拉取进度
