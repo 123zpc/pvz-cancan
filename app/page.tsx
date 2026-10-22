@@ -396,6 +396,7 @@ export default function Page() {
         <VasebreakerLevel
           onExit={() => setView('levels')}
           onWin={handleWin}
+          theme={siteTheme}
         />
       )
     }
